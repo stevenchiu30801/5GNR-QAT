@@ -5,26 +5,7 @@
 #include "cpa_types.h"
 #include "cpa_cy_sym.h"
 
-typedef struct _TestData {
-    CpaCySymCipherAlgorithm algo;
-    Cpa8U *key;
-    Cpa32U count;
-    Cpa8U bearer;
-    Cpa8U dir;
-    Cpa32U bitLen;
-    Cpa8U *iv;
-    Cpa8U *in;
-    Cpa8U *out;
-    Cpa32U keySize;
-    Cpa32U ivSize;
-    Cpa32U inSize;
-    Cpa32U outSize;
-} TestData;
-
-void freeTestData(TestData *testData);
-void genIv(TestData *testData);
-
-int gDebugParam = 1;
+#include "utils.h"
 
 TestData genNea1TestData1()
 {
@@ -447,6 +428,8 @@ void freeTestData(TestData *testData)
 void genIv(TestData *testData)
 {
     const Cpa32U ivLen = 16;
+    Cpa32U listIdx = 0;
+
     testData->iv = malloc(sizeof(Cpa8U) * ivLen);
     testData->iv[0] = (Cpa8U)((testData->count >> 24) & 0xff);
     testData->iv[1] = (Cpa8U)((testData->count >> 16) & 0xff);
@@ -459,9 +442,9 @@ void genIv(TestData *testData)
 
     if (testData->algo == CPA_CY_SYM_CIPHER_SNOW3G_UEA2 || testData->algo == CPA_CY_SYM_CIPHER_ZUC_EEA3)
     {
-        for (int i = 0; i < ivLen/2; i++)
+        for (listIdx = 0; listIdx < ivLen/2; listIdx++)
         {
-            testData->iv[ivLen/2+i] = testData->iv[i];
+            testData->iv[ivLen/2+listIdx] = testData->iv[listIdx];
         }
     }
 

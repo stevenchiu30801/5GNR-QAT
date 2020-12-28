@@ -1,8 +1,8 @@
-#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "cpa.h"
+#include "cpa_cy_common.h"
 #include "cpa_cy_im.h"
 #include "cpa_cy_sym.h"
 #include "cpa_sample_utils.h"
@@ -10,64 +10,29 @@
 #include "icp_sal_user.h"
 #include "qae_mem.h"
 
-#include "test_data.h"
+#include "utils.h"
 
-#define MAX_INSTANCES 32
+CpaInstanceHandle *inst_g = NULL;
 
-#define ANSI_COLOR_RED "\x1b[31m"
-#define ANSI_COLOR_GREEN "\x1b[32m"
-#define ANSI_COLOR_YELLOW "\x1b[33m"
-#define ANSI_COLOR_RESET "\x1b[0m"
-
-#ifndef PRINT
-#define PRINT(msg, arg...) \
-    printf(msg, ##arg)
-#endif
-
-#ifndef PRINT_COLOR
-#define PRINT_COLOR(color, msg, arg...) \
-    printf(color msg ANSI_COLOR_RESET, ##arg)
-#endif
-
-#ifndef PRINT_ERR
-#define PRINT_ERR(msg, arg...) \
-    PRINT_COLOR(ANSI_COLOR_RED, "%s:%d %s() " msg, __FILE__, __LINE__, __func__, ##arg)
-#endif
-
-#ifndef PRINT_ERR_STATUS
-#define PRINT_ERR_STATUS(func, stat) \
-    PRINT_COLOR(ANSI_COLOR_RED, "%s() failed with status %d\n", func, stat)
-#endif
-
-#ifndef PRINT_DBG
-#define PRINT_DBG(msg, arg...) \
-    PRINT("%s:%d %s() " msg, __FILE__, __LINE__, __func__, ##arg)
-#endif
-
-#define PRINT_CAPABILITY(cap, sup)     \
-    if (CPA_TRUE == sup)               \
-        printf(cap ": Supported\n");   \
-    else                               \
-        printf(cap ": Unsupported\n"); \
-
-#define CHECK_ERR_STATUS(func, stat)  \
-    if (CPA_STATUS_SUCCESS != stat)   \
-        PRINT_ERR_STATUS(func, stat); \
-
-extern CpaStatus qaeMemInit(void);
-extern void qaeMemDestroy(void);
+extern int gDebugParam;
 
 CpaStatus checkCyInstanceCapabilities(void);
 
+CpaStatus createBuffers(CpaInstanceHandle cyInstHandle,
+                        Cpa32U numBuffers,
+                        Cpa32U bufferSize,
+                        CpaBufferList **srcBufferList,
+                        CpaBufferList **dstBufferList,
+                        CpaBoolean inPlaceOp);
+
+void freeBuffers(Cpa32U numBuffers, CpaBufferList **srcBufferList, CpaBufferList **dstBufferList);
+
 void freeInstanceMapping(void);
 
-CpaStatus memAllocContig(void **memAddr, Cpa32U sizeBytes, Cpa32U alignment);
-CpaStatus memAllocOs(void **memAddr, Cpa32U sizeBytes);
-void memFreeContig(void **memAddr);
-void memFreeOs(void **memAddr);
-
-Cpa32U alignment = 64;
-CpaInstanceHandle *inst_g = NULL;
+extern CpaStatus memAllocContig(void **memAddr, Cpa32U sizeBytes, Cpa32U alignment);
+extern CpaStatus memAllocOs(void **memAddr, Cpa32U sizeBytes);
+extern void memFreeContig(void **memAddr);
+extern void memFreeOs(void **memAddr);
 
 static void symCallback(void *callBackTag,
                         CpaStatus status,
@@ -90,24 +55,18 @@ int main(int argc, const char **argv) {
     Cpa32U sessionCtxSize = 0;
     CpaCySymSessionCtx sessionCtx = NULL;
     Cpa32U numBuffers = 1;
-    Cpa32U bufferMetaSize = 0;
-    Cpa8U *srcBufferMeta = NULL;
-    Cpa8U *dstBufferMeta = NULL;
     CpaBufferList *srcBufferList = NULL;
     CpaBufferList *dstBufferList = NULL;
-    /*
-     * Allocate memory for bufferlist and array of flat buffers in a contiguous
-     * area and carve it up to reduce number of memory allocations required.
-     */
-    Cpa32U bufferListMemSize = sizeof(CpaBufferList) + (numBuffers * sizeof(CpaFlatBuffer));
-    Cpa8U *srcBuffer = NULL;
-    Cpa8U *dstBuffer = NULL;
-    Cpa8U *ivBuffer = NULL;
     CpaFlatBuffer *flatBuffer = NULL;
+    Cpa8U *ivBuffer = NULL;
     CpaCySymOpData *opData = NULL;
+    Cpa8U *dstBuffer = NULL;
     Cpa32U byteLen = 0;
     CpaBoolean sessionInUse = CPA_FALSE;
     CpaCySymStats64 symStats = {0};
+    Cpa32U listIdx = 0;
+
+    gDebugParam = 1;
 
     /*
      * Initialize memory driver usdm_drv for user space
@@ -207,9 +166,9 @@ int main(int argc, const char **argv) {
         sessionSetupData.cipherSetupData.cipherDirection = getCipherDirection(cipherTestData);
 
         PRINT_DBG("Key: ");
-        for (int i = 0; i < sessionSetupData.cipherSetupData.cipherKeyLenInBytes; i++)
+        for (listIdx = 0; listIdx < sessionSetupData.cipherSetupData.cipherKeyLenInBytes; listIdx++)
         {
-            PRINT("%02x ", sessionSetupData.cipherSetupData.pCipherKey[i]);
+            PRINT("%02x ", sessionSetupData.cipherSetupData.pCipherKey[listIdx]);
         }
         PRINT("\n");
 
@@ -220,14 +179,17 @@ int main(int argc, const char **argv) {
 
     if (CPA_STATUS_SUCCESS == stat)
     {
-        stat = memAllocContig((void *)&sessionCtx, sessionCtxSize, alignment);
+        stat = memAllocContig((void *)&sessionCtx, sessionCtxSize, BYTE_ALIGNMENT);
         CHECK_ERR_STATUS("memAllocContig", stat);
     }
 
     if (CPA_STATUS_SUCCESS == stat)
     {
         PRINT_DBG("cpaCySymInitSession()\n");
-        stat = cpaCySymInitSession(cyInstHandle, symCallback, &sessionSetupData, sessionCtx);
+        stat = cpaCySymInitSession(cyInstHandle,
+                                   symCallback,
+                                   &sessionSetupData,
+                                   sessionCtx);
         // stat = cpaCySymInitSession(cyInstHandle, NULL, &sessionSetupData, sessionCtx);
         CHECK_ERR_STATUS("cpaCySymInitSession", stat);
     }
@@ -237,83 +199,34 @@ int main(int argc, const char **argv) {
      */
     if (CPA_STATUS_SUCCESS == stat)
     {
-        PRINT_DBG("cpaCyBufferListGetMetaSize()\n");
-        stat = cpaCyBufferListGetMetaSize(cyInstHandle, numBuffers, &bufferMetaSize);
-        CHECK_ERR_STATUS("cpaCyBufferListGetMetaSize", stat);
+        stat = createBuffers(cyInstHandle,
+                             numBuffers,
+                             cipherTestData.inSize,
+                             &srcBufferList,
+                             &dstBufferList,
+                             CPA_FALSE);
+        CHECK_ERR_STATUS("createBuffers", stat);
     }
 
     if (CPA_STATUS_SUCCESS == stat)
     {
-        stat = memAllocContig((void *)&srcBufferMeta, bufferMetaSize, alignment);
+        stat = memAllocContig((void *)&ivBuffer, cipherTestData.ivSize, BYTE_ALIGNMENT);
         CHECK_ERR_STATUS("memAllocContig", stat);
     }
 
     if (CPA_STATUS_SUCCESS == stat)
     {
-        stat = memAllocContig((void *)&dstBufferMeta, bufferMetaSize, alignment);
-        CHECK_ERR_STATUS("memAllocContig", stat);
-    }
-
-    if (CPA_STATUS_SUCCESS == stat)
-    {
-        stat = memAllocOs((void *)&srcBufferList, bufferListMemSize);
-        CHECK_ERR_STATUS("memAllocOs", stat);
-    }
-
-    if (CPA_STATUS_SUCCESS == stat)
-    {
-        stat = memAllocOs((void *)&dstBufferList, bufferListMemSize);
-        CHECK_ERR_STATUS("memAllocOs", stat);
-    }
-
-    if (CPA_STATUS_SUCCESS == stat)
-    {
-        stat = memAllocContig((void *)&srcBuffer, cipherTestData.inSize, alignment);
-        CHECK_ERR_STATUS("memAllocContig", stat);
-    }
-
-    if (CPA_STATUS_SUCCESS == stat)
-    {
-        stat = memAllocContig((void *)&dstBuffer, cipherTestData.inSize, alignment);
-        CHECK_ERR_STATUS("memAllocContig", stat);
-    }
-
-    if (CPA_STATUS_SUCCESS == stat)
-    {
-        stat = memAllocContig((void *)&ivBuffer, cipherTestData.ivSize, alignment);
-        CHECK_ERR_STATUS("memAllocContig", stat);
-    }
-
-    if (CPA_STATUS_SUCCESS == stat)
-    {
-        memcpy(srcBuffer, cipherTestData.in, cipherTestData.inSize);
-        memcpy(ivBuffer, cipherTestData.iv, cipherTestData.ivSize);
-
-        flatBuffer = (CpaFlatBuffer *)(srcBufferList + 1);
-
-        srcBufferList->pBuffers = flatBuffer;
-        srcBufferList->numBuffers = numBuffers;
-        srcBufferList->pPrivateMetaData = srcBufferMeta;
-
-        flatBuffer->dataLenInBytes = cipherTestData.inSize;
-        flatBuffer->pData = srcBuffer;
-
-        flatBuffer = (CpaFlatBuffer *)(dstBufferList + 1);
-
-        dstBufferList->pBuffers = flatBuffer;
-        dstBufferList->numBuffers = numBuffers;
-        dstBufferList->pPrivateMetaData = dstBufferMeta;
-
-
-        flatBuffer->dataLenInBytes = cipherTestData.outSize;
-        flatBuffer->pData = dstBuffer;
-
         stat = memAllocOs((void *)&opData, sizeof(CpaCySymOpData));
         CHECK_ERR_STATUS("memAllocOs", stat);
     }
 
     if (CPA_STATUS_SUCCESS == stat)
     {
+        flatBuffer = (CpaFlatBuffer *)(srcBufferList + 1);
+
+        memcpy(flatBuffer->pData, cipherTestData.in, cipherTestData.inSize);
+        memcpy(ivBuffer, cipherTestData.iv, cipherTestData.ivSize);
+
         opData->sessionCtx = sessionCtx;
         opData->packetType = CPA_CY_SYM_PACKET_TYPE_FULL;
         opData->pIv = ivBuffer;
@@ -322,14 +235,19 @@ int main(int argc, const char **argv) {
         opData->messageLenToCipherInBytes = cipherTestData.inSize;
 
         PRINT_DBG("IV: ");
-        for (int i = 0; i < opData->ivLenInBytes; i++)
+        for (listIdx = 0; listIdx < opData->ivLenInBytes; listIdx++)
         {
-            PRINT("%02x ", opData->pIv[i]);
+            PRINT("%02x ", opData->pIv[listIdx]);
         }
         PRINT("\n");
 
         PRINT_DBG("cpaCySymPerformOp()\n");
-        stat = cpaCySymPerformOp(cyInstHandle, NULL, opData, srcBufferList, dstBufferList, NULL);
+        stat = cpaCySymPerformOp(cyInstHandle,
+                                 NULL,
+                                 opData,
+                                 srcBufferList,
+                                 dstBufferList,
+                                 NULL);
         CHECK_ERR_STATUS("cpaCySymPerformOp", stat);
     }
 
@@ -340,10 +258,12 @@ int main(int argc, const char **argv) {
      */
     if (CPA_STATUS_SUCCESS == stat)
     {
+        flatBuffer = (CpaFlatBuffer *)(dstBufferList + 1);
+        dstBuffer = flatBuffer->pData;
         byteLen = cipherTestData.bitLen / 8;
-        for (int i = byteLen + 1; i < cipherTestData.outSize; i++)
+        for (listIdx = byteLen + 1; listIdx < cipherTestData.outSize; listIdx++)
         {
-            dstBuffer[i] = 0x0;
+            dstBuffer[listIdx] = 0x0;
         }
         if ((cipherTestData.bitLen & 0x7) != 0)
         {
@@ -356,17 +276,17 @@ int main(int argc, const char **argv) {
         else
         {
             PRINT_COLOR(ANSI_COLOR_RED, "Output does not match expected output\n");
-            for (int i = 0; i < cipherTestData.outSize; i++)
+            for (listIdx = 0; listIdx < cipherTestData.outSize; listIdx++)
             {
-                if (0 == memcmp(dstBuffer + i, cipherTestData.out + i, 1))
+                if (0 == memcmp(dstBuffer + listIdx, cipherTestData.out + listIdx, 1))
                 {
-                    PRINT("%02x ", dstBuffer[i]);
+                    PRINT("%02x ", dstBuffer[listIdx]);
                 }
                 else
                 {
-                    PRINT_COLOR(ANSI_COLOR_RED, "%02x ", dstBuffer[i]);
+                    PRINT_COLOR(ANSI_COLOR_RED, "%02x ", dstBuffer[listIdx]);
                 }
-                if (i % 8 == 7)
+                if (listIdx % 8 == 7)
                 {
                     PRINT("\n");
                 }
@@ -412,14 +332,9 @@ int main(int argc, const char **argv) {
         cpaCyStopInstance(cyInstHandle);
     }
 
+    freeBuffers(numBuffers, &srcBufferList, &dstBufferList);
     memFreeOs((void *)&opData);
     memFreeContig((void *)&ivBuffer);
-    memFreeContig((void *)&srcBuffer);
-    memFreeOs((void *)&srcBufferList);
-    memFreeContig((void *)&dstBuffer);
-    memFreeOs((void *)&dstBufferList);
-    memFreeContig((void *)&srcBufferMeta);
-    memFreeContig((void *)&dstBufferMeta);
 
     memFreeContig((void *)&sessionCtx);
     freeTestData(&cipherTestData);
@@ -465,48 +380,144 @@ CpaStatus checkCyInstanceCapabilities(void)
     return CPA_STATUS_SUCCESS;
 }
 
+CpaStatus createBuffers(CpaInstanceHandle cyInstHandle,
+                        /* Assume source and destination buffer lists have equal number of buffers, and all flat
+                         * buffers have the same size */
+                        Cpa32U numBuffers,
+                        Cpa32U bufferSize,
+                        CpaBufferList **srcBufferList,
+                        CpaBufferList **dstBufferList,
+                        CpaBoolean inPlaceOp)
+{
+    Cpa32U bufferMetaSize = 0;
+    Cpa8U *srcBufferMeta = NULL;
+    Cpa8U *dstBufferMeta = NULL;
+    /*
+     * Allocate memory for bufferlist and array of flat buffers in a contiguous
+     * area and carve it up to reduce number of memory allocations required.
+     */
+    Cpa32U bufferListMemSize = sizeof(CpaBufferList) + (numBuffers * sizeof(CpaFlatBuffer));
+    Cpa8U *srcBuffer = NULL;
+    Cpa8U *dstBuffer = NULL;
+    CpaFlatBuffer *flatBuffer = NULL;
+    Cpa32U listIdx = 0;
+
+    CpaStatus stat = CPA_STATUS_SUCCESS;
+    if (CPA_STATUS_SUCCESS == stat)
+    {
+        PRINT_DBG("cpaCyBufferListGetMetaSize()\n");
+        stat = cpaCyBufferListGetMetaSize(cyInstHandle, numBuffers, &bufferMetaSize);
+        CHECK_ERR_STATUS("cpaCyBufferListGetMetaSize", stat);
+    }
+
+    if (CPA_STATUS_SUCCESS == stat)
+    {
+        stat = memAllocContig((void *)&srcBufferMeta, bufferMetaSize, BYTE_ALIGNMENT);
+        CHECK_ERR_STATUS("memAllocContig", stat);
+    }
+
+    if (CPA_STATUS_SUCCESS == stat && CPA_TRUE != inPlaceOp)
+    {
+        stat = memAllocContig((void *)&dstBufferMeta, bufferMetaSize, BYTE_ALIGNMENT);
+        CHECK_ERR_STATUS("memAllocContig", stat);
+    }
+
+    if (CPA_STATUS_SUCCESS == stat)
+    {
+        stat = memAllocOs((void *)srcBufferList, bufferListMemSize);
+        CHECK_ERR_STATUS("memAllocOs", stat);
+    }
+
+    if (CPA_STATUS_SUCCESS == stat && CPA_TRUE != inPlaceOp)
+    {
+        stat = memAllocOs((void *)dstBufferList, bufferListMemSize);
+        CHECK_ERR_STATUS("memAllocOs", stat);
+    }
+
+    if (CPA_STATUS_SUCCESS == stat)
+    {
+        (*srcBufferList)->pBuffers = (CpaFlatBuffer *)(*srcBufferList + 1);
+        (*srcBufferList)->numBuffers = numBuffers;
+        (*srcBufferList)->pPrivateMetaData = srcBufferMeta;
+
+        if (CPA_TRUE != inPlaceOp)
+        {
+            (*dstBufferList)->pBuffers = (CpaFlatBuffer *)(*dstBufferList + 1);
+            (*dstBufferList)->numBuffers = numBuffers;
+            (*dstBufferList)->pPrivateMetaData = dstBufferMeta;
+        }
+        else
+        {
+            *dstBufferList = *srcBufferList;
+        }
+    }
+
+    for (listIdx = 1; listIdx <= numBuffers; listIdx++)
+    {
+        if (CPA_STATUS_SUCCESS == stat)
+        {
+            stat = memAllocContig((void *)&srcBuffer, bufferSize, BYTE_ALIGNMENT);
+            CHECK_ERR_STATUS("memAllocContig", stat);
+        }
+
+        if (CPA_STATUS_SUCCESS == stat)
+        {
+            flatBuffer = (CpaFlatBuffer *)(*srcBufferList + listIdx);
+
+            flatBuffer->dataLenInBytes = bufferSize;
+            flatBuffer->pData = srcBuffer;
+        }
+
+        if (CPA_STATUS_SUCCESS == stat && CPA_TRUE != inPlaceOp)
+        {
+            stat = memAllocContig((void *)&dstBuffer, bufferSize, BYTE_ALIGNMENT);
+            CHECK_ERR_STATUS("memAllocContig", stat);
+        }
+
+        if (CPA_STATUS_SUCCESS == stat && CPA_TRUE != inPlaceOp)
+        {
+            flatBuffer = (CpaFlatBuffer *)(*dstBufferList + listIdx);
+
+            flatBuffer->dataLenInBytes = bufferSize;
+            flatBuffer->pData = dstBuffer;
+        }
+
+        if (CPA_STATUS_SUCCESS != stat)
+        {
+            break;
+        }
+    }
+
+    return stat;
+}
+
+void freeBuffers(Cpa32U numBuffers, CpaBufferList **srcBufferList, CpaBufferList **dstBufferList)
+{
+    CpaFlatBuffer *flatBuffer = NULL;
+    Cpa32U listIdx = 0;
+    for (listIdx = 1; listIdx <= numBuffers; listIdx++)
+    {
+        flatBuffer = (CpaFlatBuffer *)(*srcBufferList + listIdx);
+        memFreeContig((void *)&(flatBuffer->pData));
+
+        flatBuffer = (CpaFlatBuffer *)(*dstBufferList + listIdx);
+        memFreeContig((void *)&(flatBuffer->pData));
+    }
+
+    memFreeContig((void *)&((*srcBufferList)->pPrivateMetaData));
+    memFreeContig((void *)&((*dstBufferList)->pPrivateMetaData));
+
+    memFreeOs((void* )srcBufferList);
+    memFreeOs((void* )dstBufferList);
+
+    *srcBufferList = NULL;
+    *dstBufferList = NULL;
+}
+
 void freeInstanceMapping(void)
 {
     if (NULL != inst_g)
     {
         qaeMemFree((void **)&inst_g);
-    }
-}
-
-CpaStatus memAllocContig(void **memAddr, Cpa32U sizeBytes, Cpa32U alignment)
-{
-    *memAddr = qaeMemAllocNUMA(sizeBytes, 0, alignment);
-    if (NULL == *memAddr)
-    {
-        return CPA_STATUS_RESOURCE;
-    }
-    return CPA_STATUS_SUCCESS;
-}
-
-CpaStatus memAllocOs(void **memAddr, Cpa32U sizeBytes)
-{
-    *memAddr = malloc(sizeBytes);
-    if (NULL == *memAddr)
-    {
-        return CPA_STATUS_RESOURCE;
-    }
-    return CPA_STATUS_SUCCESS;
-}
-
-void memFreeContig(void **memAddr)
-{
-    if (NULL != *memAddr)
-    {
-        qaeMemFreeNUMA(memAddr);
-        *memAddr = NULL;
-    }
-}
-
-void memFreeOs(void **memAddr)
-{
-    if (NULL != *memAddr)
-    {
-        free(*memAddr);
-        *memAddr = NULL;
     }
 }
