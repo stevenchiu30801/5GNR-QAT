@@ -99,6 +99,7 @@ CpaStatus execQat(TestData cipherTestData)
     Cpa32U sessionCtxSize = 0;
     CpaCySymSessionCtx sessionCtx = NULL;
     Cpa32U numBuffers = 1;
+    CpaBoolean inPlaceOp = CPA_TRUE;
     CpaBufferList *srcBufferList = NULL;
     CpaBufferList *dstBufferList = NULL;
     CpaFlatBuffer *flatBuffer = NULL;
@@ -245,7 +246,7 @@ CpaStatus execQat(TestData cipherTestData)
                              cipherTestData.inSize,
                              &srcBufferList,
                              &dstBufferList,
-                             CPA_FALSE);
+                             inPlaceOp);
         CHECK_ERR_STATUS("createBuffers", stat);
     }
 
@@ -373,7 +374,10 @@ CpaStatus execQat(TestData cipherTestData)
         cpaCyStopInstance(cyInstHandle);
     }
 
-    freeBuffers(numBuffers, &srcBufferList, &dstBufferList);
+    freeBuffers(numBuffers,
+                &srcBufferList,
+                &dstBufferList,
+                inPlaceOp);
     memFreeOs((void *)&opData);
     memFreeContig((void *)&ivBuffer);
 
@@ -532,27 +536,41 @@ CpaStatus createBuffers(CpaInstanceHandle cyInstHandle,
     return stat;
 }
 
-void freeBuffers(Cpa32U numBuffers, CpaBufferList **srcBufferList, CpaBufferList **dstBufferList)
+void freeBuffers(Cpa32U numBuffers,
+                 CpaBufferList **srcBufferList,
+                 CpaBufferList **dstBufferList,
+                 CpaBoolean inPlaceOp)
 {
     CpaFlatBuffer *flatBuffer = NULL;
     Cpa32U listIdx = 0;
-    for (listIdx = 1; listIdx <= numBuffers; listIdx++)
+    if (NULL != *srcBufferList)
     {
-        flatBuffer = (CpaFlatBuffer *)(*srcBufferList + listIdx);
-        memFreeContig((void *)&(flatBuffer->pData));
+        for (listIdx = 1; listIdx <= numBuffers; listIdx++)
+        {
+            flatBuffer = (CpaFlatBuffer *)(*srcBufferList + listIdx);
+            memFreeContig((void *)&(flatBuffer->pData));
+        }
+        memFreeContig((void *)&((*srcBufferList)->pPrivateMetaData));
 
-        flatBuffer = (CpaFlatBuffer *)(*dstBufferList + listIdx);
-        memFreeContig((void *)&(flatBuffer->pData));
+        memFreeOs((void* )srcBufferList);
+        *srcBufferList = NULL;
     }
+    if (CPA_TRUE == inPlaceOp)
+    {
+        *dstBufferList = NULL;
+    }
+    else if (NULL != *dstBufferList)
+    {
+        for (listIdx = 1; listIdx <= numBuffers; listIdx++)
+        {
+            flatBuffer = (CpaFlatBuffer *)(*dstBufferList + listIdx);
+            memFreeContig((void *)&(flatBuffer->pData));
+        }
+        memFreeContig((void *)&((*dstBufferList)->pPrivateMetaData));
 
-    memFreeContig((void *)&((*srcBufferList)->pPrivateMetaData));
-    memFreeContig((void *)&((*dstBufferList)->pPrivateMetaData));
-
-    memFreeOs((void* )srcBufferList);
-    memFreeOs((void* )dstBufferList);
-
-    *srcBufferList = NULL;
-    *dstBufferList = NULL;
+        memFreeOs((void* )dstBufferList);
+        *dstBufferList = NULL;
+    }
 }
 
 void freeInstanceMapping(void)

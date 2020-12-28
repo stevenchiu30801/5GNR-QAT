@@ -75,7 +75,10 @@ CpaStatus createBuffers(CpaInstanceHandle cyInstHandle,
                         CpaBufferList **srcBufferList,
                         CpaBufferList **dstBufferList,
                         CpaBoolean inPlaceOp);
-void freeBuffers(Cpa32U numBuffers, CpaBufferList **srcBufferList, CpaBufferList **dstBufferList);
+void freeBuffers(Cpa32U numBuffers,
+                 CpaBufferList **srcBufferList,
+                 CpaBufferList **dstBufferList,
+                 CpaBoolean inPlaceOp);
 
 void freeInstanceMapping(void);
 
