@@ -14,25 +14,15 @@
 
 CpaInstanceHandle *inst_g = NULL;
 
-extern int gDebugParam;
-
-CpaStatus checkCyInstanceCapabilities(void);
-
-CpaStatus createBuffers(CpaInstanceHandle cyInstHandle,
-                        Cpa32U numBuffers,
-                        Cpa32U bufferSize,
-                        CpaBufferList **srcBufferList,
-                        CpaBufferList **dstBufferList,
-                        CpaBoolean inPlaceOp);
-
-void freeBuffers(Cpa32U numBuffers, CpaBufferList **srcBufferList, CpaBufferList **dstBufferList);
-
-void freeInstanceMapping(void);
-
-extern CpaStatus memAllocContig(void **memAddr, Cpa32U sizeBytes, Cpa32U alignment);
-extern CpaStatus memAllocOs(void **memAddr, Cpa32U sizeBytes);
-extern void memFreeContig(void **memAddr);
-extern void memFreeOs(void **memAddr);
+void usage(const char *cmd)
+{
+    PRINT("Test 5G NR Security with Intel QAT\n");
+    PRINT("\n");
+    PRINT("Usage: sudo %s [ALGO] [TESTSET]\n", cmd);
+    PRINT("Arguments:\n");
+    PRINT("    ALGO        Security algorithm - nea1, nea2 or nea3\n");
+    PRINT("    TESTSET     Test set number - 1 to 3\n");
+}
 
 static void symCallback(void *callBackTag,
                         CpaStatus status,
@@ -44,14 +34,68 @@ static void symCallback(void *callBackTag,
     PRINT_DBG("Callback called with status = %d.\n", status); 
 }
 
-int main(int argc, const char **argv) {
+int main(int argc, const char **argv)
+{
+    TestData cipherTestData = {0};
+    int testSetId = 0;
+    CpaStatus stat;
+
+    if (argc == 1)
+    {
+        cipherTestData = genSampleTestData();
+    }
+    else if (argc == 2 && (0 == strcmp(argv[1], "-h") || 0 == strcmp(argv[1], "--help")))
+    {
+        usage(argv[0]);
+        exit(0);
+    }
+    else if (argc != 3)
+    {
+        PRINT("Invalid arguments\n");
+        usage(argv[0]);
+        exit(1);
+    }
+    else
+    {
+        testSetId = atoi(argv[2]);
+        if (testSetId > 3 || testSetId < 1)
+        {
+            PRINT("Invalid test set ID\n");
+            usage(argv[0]);
+            exit(1);
+        }
+        if (0 == strcmp(argv[1], "nea1"))
+        {
+            cipherTestData = genNea1TestData(testSetId);
+        }
+        else if (0 == strcmp(argv[1], "nea2"))
+        {
+            cipherTestData = genNea2TestData(testSetId);
+        }
+        else if (0 == strcmp(argv[1], "nea3"))
+        {
+            cipherTestData = genNea3TestData(testSetId);
+        }
+        else
+        {
+            PRINT("Unknow security algorithm\n");
+            usage(argv[0]);
+            exit(1);
+        }
+    }
+    stat = execQat(cipherTestData);
+
+    return (int)stat;
+}
+
+CpaStatus execQat(TestData cipherTestData)
+{
     CpaStatus stat = CPA_STATUS_SUCCESS;
     char *processName = NULL;
     Cpa16U numInstances = 0;
     CpaInstanceHandle cyInstHandles[MAX_INSTANCES];
     CpaInstanceHandle cyInstHandle = NULL;
     CpaCySymSessionSetupData sessionSetupData = {0};
-    TestData cipherTestData = {0};
     Cpa32U sessionCtxSize = 0;
     CpaCySymSessionCtx sessionCtx = NULL;
     Cpa32U numBuffers = 1;
@@ -76,7 +120,7 @@ int main(int argc, const char **argv) {
     if (CPA_STATUS_SUCCESS != stat)
     {
         PRINT_ERR("Failed to initialise memory driver\n");
-        return (int)stat;
+        return stat;
     }
 
     /*
@@ -90,7 +134,7 @@ int main(int argc, const char **argv) {
     {
         PRINT_ERR("Failed to start user process 'PDCP'\n");
         qaeMemDestroy();
-        return (int)stat;
+        return stat;
     }
 
     /*
@@ -155,9 +199,6 @@ int main(int argc, const char **argv) {
      */
     if (CPA_STATUS_SUCCESS == stat)
     {
-        cipherTestData = genNea1TestData1();
-        // cipherTestData = genSampleTestData();
-
         sessionSetupData.sessionPriority = CPA_CY_PRIORITY_NORMAL;
         sessionSetupData.symOperation = CPA_CY_SYM_OP_CIPHER;
         sessionSetupData.cipherSetupData.cipherAlgorithm = cipherTestData.algo;
@@ -187,10 +228,10 @@ int main(int argc, const char **argv) {
     {
         PRINT_DBG("cpaCySymInitSession()\n");
         stat = cpaCySymInitSession(cyInstHandle,
-                                   symCallback,
+                                   // symCallback,
+                                   NULL,
                                    &sessionSetupData,
                                    sessionCtx);
-        // stat = cpaCySymInitSession(cyInstHandle, NULL, &sessionSetupData, sessionCtx);
         CHECK_ERR_STATUS("cpaCySymInitSession", stat);
     }
 
@@ -251,7 +292,7 @@ int main(int argc, const char **argv) {
         CHECK_ERR_STATUS("cpaCySymPerformOp", stat);
     }
 
-    sleep(1);
+    // sleep(1);
 
     /*
      * Verify the result
@@ -346,7 +387,7 @@ int main(int argc, const char **argv) {
     icp_sal_userStop();
     qaeMemDestroy();
 
-    return (int)stat;
+    return stat;
 }
 
 CpaStatus checkCyInstanceCapabilities(void)

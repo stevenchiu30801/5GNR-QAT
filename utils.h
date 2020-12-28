@@ -5,6 +5,7 @@
 
 #define MAX_INSTANCES 32
 #define BYTE_ALIGNMENT 64
+#define MAX_TEST_DATA 16
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -64,15 +65,40 @@ typedef struct _TestData {
 
 int gDebugParam;
 
-TestData genNea1TestData1();
-TestData genNea1TestData2();
-TestData genNea1TestData3();
-TestData genNea2TestData1();
-TestData genNea2TestData2();
-TestData genNea2TestData3();
-TestData genNea3TestData1();
-TestData genNea3TestData2();
-TestData genNea3TestData3();
+CpaStatus execQat(TestData cipherTestData);
+
+CpaStatus checkCyInstanceCapabilities(void);
+
+CpaStatus createBuffers(CpaInstanceHandle cyInstHandle,
+                        Cpa32U numBuffers,
+                        Cpa32U bufferSize,
+                        CpaBufferList **srcBufferList,
+                        CpaBufferList **dstBufferList,
+                        CpaBoolean inPlaceOp);
+void freeBuffers(Cpa32U numBuffers, CpaBufferList **srcBufferList, CpaBufferList **dstBufferList);
+
+void freeInstanceMapping(void);
+
+/*
+ ********************
+ * Wrapper functions
+ ********************
+ */
+CpaStatus memAllocContig(void **memAddr, Cpa32U sizeBytes, Cpa32U alignment);
+CpaStatus memAllocOs(void **memAddr, Cpa32U sizeBytes);
+
+void memFreeContig(void **memAddr);
+void memFreeOs(void **memAddr);
+
+/*
+ *********************
+ * Test set functions
+ *********************
+ */
+TestData genNea1TestData(int testSetId);
+TestData genNea2TestData(int testSetId);
+TestData genNea3TestData(int testSetId);
+TestData genSampleTestData();
 
 CpaCySymCipherDirection getCipherDirection(TestData testData);
 
