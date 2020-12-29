@@ -48,15 +48,19 @@
         PRINT_ERR_STATUS(func, stat);
 
 typedef struct _TestData {
-    CpaCySymCipherAlgorithm algo;
+    CpaCySymOp op;
+    CpaCySymCipherAlgorithm cipherAlgo;
+    CpaCySymHashAlgorithm hashAlgo;
+    CpaCySymHashMode hashMode;
     Cpa8U *key;
     Cpa32U count;
     Cpa8U bearer;
-    Cpa8U dir;
+    Cpa32U fresh;
+    Cpa8U dir; /* 0 (uplink) for decrypt, 1 (downlink) for encrypt */
     Cpa32U bitLen;
     Cpa8U *iv;
     Cpa8U *in;
-    Cpa8U *out;
+    Cpa8U *out; /* digest for hash */
     Cpa32U keySize;
     Cpa32U ivSize;
     Cpa32U inSize;
@@ -98,10 +102,13 @@ void memFreeOs(void **memAddr);
  * Test set functions
  *********************
  */
-TestData genNea1TestData(int testSetId);
-TestData genNea2TestData(int testSetId);
-TestData genNea3TestData(int testSetId);
-TestData genSampleTestData();
+CpaStatus genNea1TestData(int testSetId, TestData *ret);
+CpaStatus genNea2TestData(int testSetId, TestData *ret);
+CpaStatus genNea3TestData(int testSetId, TestData *ret);
+CpaStatus genNia1TestData(int testSetId, TestData *ret);
+CpaStatus genNia2TestData(int testSetId, TestData *ret);
+CpaStatus genNia3TestData(int testSetId, TestData *ret);
+CpaStatus genSampleTestData(TestData *ret);
 
 CpaCySymCipherDirection getCipherDirection(TestData testData);
 

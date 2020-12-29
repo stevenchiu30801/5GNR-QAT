@@ -23,10 +23,10 @@
 
 #include "utils.h"
 
-TestData genNea1TestData(int testSetId)
+CpaStatus genNea1TestData(int testSetId, TestData *ret)
 {
-    TestData ret;
-    ret.algo = CPA_CY_SYM_CIPHER_SNOW3G_UEA2;
+    ret->op = CPA_CY_SYM_OP_CIPHER;
+    ret->cipherAlgo = CPA_CY_SYM_CIPHER_SNOW3G_UEA2;
 
     if (testSetId == 1)
     {
@@ -51,19 +51,19 @@ TestData genNea1TestData(int testSetId)
             0x22, 0x59, 0xAF, 0x43, 0x25, 0xE2, 0xA6, 0x5E, 0x30, 0x84, 0xAD, 0x5F, 0x6A, 0x51, 0x3B, 0x7B,
             0xDD, 0xC1, 0xB6, 0x5F, 0x0A, 0xA0, 0xD9, 0x7A, 0x05, 0x3D, 0xB5, 0x5A, 0x88, 0xC4, 0xC4, 0xF9,
             0x60, 0x5E, 0x41, 0x40};
-        ret.bitLen = 798;
-        ret.key = malloc(sizeof(Cpa8U) * sizeof(testKey));
-        memcpy(ret.key, testKey, sizeof(testKey));
-        ret.count = 0x72A4F20F;
-        ret.bearer = 0x0C;
-        ret.dir = 1;
-        ret.in = malloc(sizeof(Cpa8U) * sizeof(testIn));
-        memcpy(ret.in, testIn, sizeof(testIn));
-        ret.out = malloc(sizeof(Cpa8U) * sizeof(testOut));
-        memcpy(ret.out, testOut, sizeof(testOut));
-        ret.keySize = sizeof(testKey);
-        ret.inSize = sizeof(testIn);
-        ret.outSize = sizeof(testOut);
+        ret->bitLen = 798;
+        ret->key = malloc(sizeof(Cpa8U) * sizeof(testKey));
+        memcpy(ret->key, testKey, sizeof(testKey));
+        ret->count = 0x72A4F20F;
+        ret->bearer = 0x0C;
+        ret->dir = 1;
+        ret->in = malloc(sizeof(Cpa8U) * sizeof(testIn));
+        memcpy(ret->in, testIn, sizeof(testIn));
+        ret->out = malloc(sizeof(Cpa8U) * sizeof(testOut));
+        memcpy(ret->out, testOut, sizeof(testOut));
+        ret->keySize = sizeof(testKey);
+        ret->inSize = sizeof(testIn);
+        ret->outSize = sizeof(testOut);
     }
     else if (testSetId == 2)
     {
@@ -82,19 +82,19 @@ TestData genNea1TestData(int testSetId)
             0x9C, 0x56, 0x8A, 0xA5, 0x03, 0x23, 0x17, 0xE0, 0x4E, 0x07, 0x29, 0x64, 0x6C, 0xAB, 0xEF, 0xA6,
             0x89, 0x86, 0x4C, 0x41, 0x0F, 0x24, 0xF9, 0x19, 0xE6, 0x1E, 0x3D, 0xFD, 0xFA, 0xD7, 0x7E, 0x56,
             0x0D, 0xB0, 0xA9, 0xCD, 0x36, 0xC3, 0x4A, 0xE4, 0x18, 0x14, 0x90, 0xB2, 0x9F, 0x5F, 0xA2, 0xFC};
-        ret.bitLen = 510;
-        ret.key = malloc(sizeof(Cpa8U) * sizeof(testKey));
-        memcpy(ret.key, testKey, sizeof(testKey));
-        ret.count = 0xE28BCF7B;
-        ret.bearer = 0x18;
-        ret.dir = 0;
-        ret.in = malloc(sizeof(Cpa8U) * sizeof(testIn));
-        memcpy(ret.in, testIn, sizeof(testIn));
-        ret.out = malloc(sizeof(Cpa8U) * sizeof(testOut));
-        memcpy(ret.out, testOut, sizeof(testOut));
-        ret.keySize = sizeof(testKey);
-        ret.inSize = sizeof(testIn);
-        ret.outSize = sizeof(testOut);
+        ret->bitLen = 510;
+        ret->key = malloc(sizeof(Cpa8U) * sizeof(testKey));
+        memcpy(ret->key, testKey, sizeof(testKey));
+        ret->count = 0xE28BCF7B;
+        ret->bearer = 0x18;
+        ret->dir = 0;
+        ret->in = malloc(sizeof(Cpa8U) * sizeof(testIn));
+        memcpy(ret->in, testIn, sizeof(testIn));
+        ret->out = malloc(sizeof(Cpa8U) * sizeof(testOut));
+        memcpy(ret->out, testOut, sizeof(testOut));
+        ret->keySize = sizeof(testKey);
+        ret->inSize = sizeof(testIn);
+        ret->outSize = sizeof(testOut);
     }
     else if (testSetId == 3)
     {
@@ -107,30 +107,34 @@ TestData genNea1TestData(int testSetId)
             0xAD, 0x9C, 0x44, 0x1F, 0x89, 0x0B, 0x38, 0xC4, 0x57, 0xA4, 0x9D, 0x42, 0x14, 0x07, 0xE8};
         Cpa8U testOut[] = {
             0xBA, 0x0F, 0x31, 0x30, 0x03, 0x34, 0xC5, 0x6B, 0x52, 0xA7, 0x49, 0x7C, 0xBA, 0xC0, 0x46};
-        ret.bitLen = 120;
-        ret.key = malloc(sizeof(Cpa8U) * sizeof(testKey));
-        memcpy(ret.key, testKey, sizeof(testKey));
-        ret.count = 0xFA556B26;
-        ret.bearer = 0x03;
-        ret.dir = 1;
-        ret.in = malloc(sizeof(Cpa8U) * sizeof(testIn));
-        memcpy(ret.in, testIn, sizeof(testIn));
-        ret.out = malloc(sizeof(Cpa8U) * sizeof(testOut));
-        memcpy(ret.out, testOut, sizeof(testOut));
-        ret.keySize = sizeof(testKey);
-        ret.inSize = sizeof(testIn);
-        ret.outSize = sizeof(testOut);
+        ret->bitLen = 120;
+        ret->key = malloc(sizeof(Cpa8U) * sizeof(testKey));
+        memcpy(ret->key, testKey, sizeof(testKey));
+        ret->count = 0xFA556B26;
+        ret->bearer = 0x03;
+        ret->dir = 1;
+        ret->in = malloc(sizeof(Cpa8U) * sizeof(testIn));
+        memcpy(ret->in, testIn, sizeof(testIn));
+        ret->out = malloc(sizeof(Cpa8U) * sizeof(testOut));
+        memcpy(ret->out, testOut, sizeof(testOut));
+        ret->keySize = sizeof(testKey);
+        ret->inSize = sizeof(testIn);
+        ret->outSize = sizeof(testOut);
+    }
+    else
+    {
+        return CPA_STATUS_FAIL;
     }
 
-    genIv(&ret);
+    genIv(ret);
 
-    return ret;
+    return CPA_STATUS_SUCCESS;
 }
 
-TestData genNea2TestData(int testSetId)
+CpaStatus genNea2TestData(int testSetId, TestData *ret)
 {
-    TestData ret;
-    ret.algo = CPA_CY_SYM_CIPHER_AES_CTR;
+    ret->op = CPA_CY_SYM_OP_CIPHER;
+    ret->cipherAlgo = CPA_CY_SYM_CIPHER_AES_CTR;
 
     if (testSetId == 1)
     {
@@ -145,19 +149,19 @@ TestData genNea2TestData(int testSetId)
         Cpa8U testOut[] = {
             0xe9, 0xfe, 0xd8, 0xa6, 0x3d, 0x15, 0x53, 0x04, 0xd7, 0x1d, 0xf2, 0x0b, 0xf3, 0xe8, 0x22, 0x14,
             0xb2, 0x0e, 0xd7, 0xda, 0xd2, 0xf2, 0x33, 0xdc, 0x3c, 0x22, 0xd7, 0xbd, 0xee, 0xed, 0x8e, 0x78};
-        ret.bitLen = 253;
-        ret.key = malloc(sizeof(Cpa8U) * sizeof(testKey));
-        memcpy(ret.key, testKey, sizeof(testKey));
-        ret.count = 0x398a59b4;
-        ret.bearer = 0x15;
-        ret.dir = 1;
-        ret.in = malloc(sizeof(Cpa8U) * sizeof(testIn));
-        memcpy(ret.in, testIn, sizeof(testIn));
-        ret.out = malloc(sizeof(Cpa8U) * sizeof(testOut));
-        memcpy(ret.out, testOut, sizeof(testOut));
-        ret.keySize = sizeof(testKey);
-        ret.inSize = sizeof(testIn);
-        ret.outSize = sizeof(testOut);
+        ret->bitLen = 253;
+        ret->key = malloc(sizeof(Cpa8U) * sizeof(testKey));
+        memcpy(ret->key, testKey, sizeof(testKey));
+        ret->count = 0x398a59b4;
+        ret->bearer = 0x15;
+        ret->dir = 1;
+        ret->in = malloc(sizeof(Cpa8U) * sizeof(testIn));
+        memcpy(ret->in, testIn, sizeof(testIn));
+        ret->out = malloc(sizeof(Cpa8U) * sizeof(testOut));
+        memcpy(ret->out, testOut, sizeof(testOut));
+        ret->keySize = sizeof(testKey);
+        ret->inSize = sizeof(testIn);
+        ret->outSize = sizeof(testOut);
     }
     else if (testSetId == 2)
     {
@@ -182,19 +186,19 @@ TestData genNea2TestData(int testSetId)
             0x09, 0x43, 0xf2, 0xcb, 0x5a, 0xe8, 0xf0, 0x52, 0xc7, 0xb7, 0xd3, 0x92, 0x23, 0x95, 0x87, 0xb8,
             0x95, 0x60, 0x86, 0xbc, 0xab, 0x18, 0x83, 0x60, 0x42, 0xe2, 0xe6, 0xce, 0x42, 0x43, 0x2a, 0x17,
             0x10, 0x5c, 0x53, 0xd0};
-        ret.bitLen = 798;
-        ret.key = malloc(sizeof(Cpa8U) * sizeof(testKey));
-        memcpy(ret.key, testKey, sizeof(testKey));
-        ret.count = 0xc675a64b;
-        ret.bearer = 0x0c;
-        ret.dir = 1;
-        ret.in = malloc(sizeof(Cpa8U) * sizeof(testIn));
-        memcpy(ret.in, testIn, sizeof(testIn));
-        ret.out = malloc(sizeof(Cpa8U) * sizeof(testOut));
-        memcpy(ret.out, testOut, sizeof(testOut));
-        ret.keySize = sizeof(testKey);
-        ret.inSize = sizeof(testIn);
-        ret.outSize = sizeof(testOut);
+        ret->bitLen = 798;
+        ret->key = malloc(sizeof(Cpa8U) * sizeof(testKey));
+        memcpy(ret->key, testKey, sizeof(testKey));
+        ret->count = 0xc675a64b;
+        ret->bearer = 0x0c;
+        ret->dir = 1;
+        ret->in = malloc(sizeof(Cpa8U) * sizeof(testIn));
+        memcpy(ret->in, testIn, sizeof(testIn));
+        ret->out = malloc(sizeof(Cpa8U) * sizeof(testOut));
+        memcpy(ret->out, testOut, sizeof(testOut));
+        ret->keySize = sizeof(testKey);
+        ret->inSize = sizeof(testIn);
+        ret->outSize = sizeof(testOut);
     }
     else if (testSetId == 3)
     {
@@ -211,30 +215,34 @@ TestData genNea2TestData(int testSetId)
             0x75, 0x75, 0x0d, 0x37, 0xb4, 0xbb, 0xa2, 0xa4, 0xde, 0xdb, 0x34, 0x23, 0x5b, 0xd6, 0x8c, 0x66,
             0x45, 0xac, 0xda, 0xac, 0xa4, 0x81, 0x38, 0xa3, 0xb0, 0xc4, 0x71, 0xe2, 0xa7, 0x04, 0x1a, 0x57,
             0x64, 0x23, 0xd2, 0x92, 0x72, 0x87, 0xf0, 0x00};
-        ret.bitLen = 310;
-        ret.key = malloc(sizeof(Cpa8U) * sizeof(testKey));
-        memcpy(ret.key, testKey, sizeof(testKey));
-        ret.count = 0x544d49cd;
-        ret.bearer = 0x04;
-        ret.dir = 0;
-        ret.in = malloc(sizeof(Cpa8U) * sizeof(testIn));
-        memcpy(ret.in, testIn, sizeof(testIn));
-        ret.out = malloc(sizeof(Cpa8U) * sizeof(testOut));
-        memcpy(ret.out, testOut, sizeof(testOut));
-        ret.keySize = sizeof(testKey);
-        ret.inSize = sizeof(testIn);
-        ret.outSize = sizeof(testOut);
+        ret->bitLen = 310;
+        ret->key = malloc(sizeof(Cpa8U) * sizeof(testKey));
+        memcpy(ret->key, testKey, sizeof(testKey));
+        ret->count = 0x544d49cd;
+        ret->bearer = 0x04;
+        ret->dir = 0;
+        ret->in = malloc(sizeof(Cpa8U) * sizeof(testIn));
+        memcpy(ret->in, testIn, sizeof(testIn));
+        ret->out = malloc(sizeof(Cpa8U) * sizeof(testOut));
+        memcpy(ret->out, testOut, sizeof(testOut));
+        ret->keySize = sizeof(testKey);
+        ret->inSize = sizeof(testIn);
+        ret->outSize = sizeof(testOut);
+    }
+    else
+    {
+        return CPA_STATUS_FAIL;
     }
 
-    genIv(&ret);
+    genIv(ret);
 
-    return ret;
+    return CPA_STATUS_SUCCESS;
 }
 
-TestData genNea3TestData(int testSetId)
+CpaStatus genNea3TestData(int testSetId, TestData *ret)
 {
-    TestData ret;
-    ret.algo = CPA_CY_SYM_CIPHER_ZUC_EEA3;
+    ret->op = CPA_CY_SYM_OP_CIPHER;
+    ret->cipherAlgo = CPA_CY_SYM_CIPHER_ZUC_EEA3;
 
     if (testSetId == 1)
     {
@@ -249,19 +257,19 @@ TestData genNea3TestData(int testSetId)
         Cpa8U testOut[] = {
             0xa6, 0xc8, 0x5f, 0xc6, 0x6a, 0xfb, 0x85, 0x33, 0xaa, 0xfc, 0x25, 0x18, 0xdf, 0xe7, 0x84, 0x94,
             0x0e, 0xe1, 0xe4, 0xb0, 0x30, 0x23, 0x8c, 0xc8, 0x00, 0x00, 0x00, 0x00};
-        ret.bitLen = 193;
-        ret.key = malloc(sizeof(Cpa8U) * sizeof(testKey));
-        memcpy(ret.key, testKey, sizeof(testKey));
-        ret.count = 0x66035492;
-        ret.bearer = 0x0f;
-        ret.dir = 0;
-        ret.in = malloc(sizeof(Cpa8U) * sizeof(testIn));
-        memcpy(ret.in, testIn, sizeof(testIn));
-        ret.out = malloc(sizeof(Cpa8U) * sizeof(testOut));
-        memcpy(ret.out, testOut, sizeof(testOut));
-        ret.keySize = sizeof(testKey);
-        ret.inSize = sizeof(testIn);
-        ret.outSize = sizeof(testOut);
+        ret->bitLen = 193;
+        ret->key = malloc(sizeof(Cpa8U) * sizeof(testKey));
+        memcpy(ret->key, testKey, sizeof(testKey));
+        ret->count = 0x66035492;
+        ret->bearer = 0x0f;
+        ret->dir = 0;
+        ret->in = malloc(sizeof(Cpa8U) * sizeof(testIn));
+        memcpy(ret->in, testIn, sizeof(testIn));
+        ret->out = malloc(sizeof(Cpa8U) * sizeof(testOut));
+        memcpy(ret->out, testOut, sizeof(testOut));
+        ret->keySize = sizeof(testKey);
+        ret->inSize = sizeof(testIn);
+        ret->outSize = sizeof(testOut);
     }
     else if (testSetId == 2)
     {
@@ -286,19 +294,19 @@ TestData genNea3TestData(int testSetId)
             0xe8, 0x2a, 0x20, 0x4e, 0xd0, 0xe3, 0x50, 0xfc, 0x0f, 0x6f, 0x26, 0x13, 0xb2, 0xf2, 0xbc, 0xa6,
             0xdf, 0x5a, 0x47, 0x3a, 0x57, 0xa4, 0xa0, 0x0d, 0x98, 0x5e, 0xba, 0xd8, 0x80, 0xd6, 0xf2, 0x38,
             0x64, 0xa0, 0x7b, 0x01};
-        ret.bitLen = 800;
-        ret.key = malloc(sizeof(Cpa8U) * sizeof(testKey));
-        memcpy(ret.key, testKey, sizeof(testKey));
-        ret.count = 0x00056823;
-        ret.bearer = 0x18;
-        ret.dir = 1;
-        ret.in = malloc(sizeof(Cpa8U) * sizeof(testIn));
-        memcpy(ret.in, testIn, sizeof(testIn));
-        ret.out = malloc(sizeof(Cpa8U) * sizeof(testOut));
-        memcpy(ret.out, testOut, sizeof(testOut));
-        ret.keySize = sizeof(testKey);
-        ret.inSize = sizeof(testIn);
-        ret.outSize = sizeof(testOut);
+        ret->bitLen = 800;
+        ret->key = malloc(sizeof(Cpa8U) * sizeof(testKey));
+        memcpy(ret->key, testKey, sizeof(testKey));
+        ret->count = 0x00056823;
+        ret->bearer = 0x18;
+        ret->dir = 1;
+        ret->in = malloc(sizeof(Cpa8U) * sizeof(testIn));
+        memcpy(ret->in, testIn, sizeof(testIn));
+        ret->out = malloc(sizeof(Cpa8U) * sizeof(testOut));
+        memcpy(ret->out, testOut, sizeof(testOut));
+        ret->keySize = sizeof(testKey);
+        ret->inSize = sizeof(testIn);
+        ret->outSize = sizeof(testOut);
     }
     else if (testSetId == 3)
     {
@@ -335,30 +343,187 @@ TestData genNea3TestData(int testSetId)
             0x8e, 0x8e, 0xbd, 0x37, 0x34, 0x6f, 0x71, 0xbe, 0xfd, 0xbb, 0x74, 0x32, 0xe0, 0xe0, 0xbb, 0x2c,
             0xfc, 0x09, 0xbc, 0xd9, 0x65, 0x70, 0xcb, 0x0c, 0x0c, 0x39, 0xdf, 0x5e, 0x29, 0x29, 0x4e, 0x82,
             0x70, 0x3a, 0x63, 0x7f, 0x80, 0x00, 0x00, 0x00};
-        ret.bitLen = 1570;
-        ret.key = malloc(sizeof(Cpa8U) * sizeof(testKey));
-        memcpy(ret.key, testKey, sizeof(testKey));
-        ret.count = 0x76452ec1;
-        ret.bearer = 0x02;
-        ret.dir = 1;
-        ret.in = malloc(sizeof(Cpa8U) * sizeof(testIn));
-        memcpy(ret.in, testIn, sizeof(testIn));
-        ret.out = malloc(sizeof(Cpa8U) * sizeof(testOut));
-        memcpy(ret.out, testOut, sizeof(testOut));
-        ret.keySize = sizeof(testKey);
-        ret.inSize = sizeof(testIn);
-        ret.outSize = sizeof(testOut);
+        ret->bitLen = 1570;
+        ret->key = malloc(sizeof(Cpa8U) * sizeof(testKey));
+        memcpy(ret->key, testKey, sizeof(testKey));
+        ret->count = 0x76452ec1;
+        ret->bearer = 0x02;
+        ret->dir = 1;
+        ret->in = malloc(sizeof(Cpa8U) * sizeof(testIn));
+        memcpy(ret->in, testIn, sizeof(testIn));
+        ret->out = malloc(sizeof(Cpa8U) * sizeof(testOut));
+        memcpy(ret->out, testOut, sizeof(testOut));
+        ret->keySize = sizeof(testKey);
+        ret->inSize = sizeof(testIn);
+        ret->outSize = sizeof(testOut);
+    }
+    else
+    {
+        return CPA_STATUS_FAIL;
     }
 
-    genIv(&ret);
+    genIv(ret);
 
-    return ret;
+    return CPA_STATUS_SUCCESS;
 }
 
-TestData genSampleTestData()
+CpaStatus genNia1TestData(int testSetId, TestData *ret)
 {
-    TestData ret;
-    ret.algo = CPA_CY_SYM_CIPHER_AES_CBC;
+    ret->op = CPA_CY_SYM_OP_HASH;
+    ret->hashAlgo = CPA_CY_SYM_HASH_SNOW3G_UIA2;
+    ret->hashMode = CPA_CY_SYM_HASH_MODE_AUTH;
+
+    if (testSetId == 1)
+    {
+        /*
+         * NIA1 test set 1
+         */
+        Cpa8U testKey[] = {
+            0x2B, 0xD6, 0x45, 0x9F, 0x82, 0xC5, 0xB3, 0x00, 0x95, 0x2C, 0x49, 0x10, 0x48, 0x81, 0xFF, 0x48};
+        Cpa8U testIn[] = {
+            0x6B, 0x22, 0x77, 0x37, 0x29, 0x6F, 0x39, 0x3C, 0x80, 0x79, 0x35, 0x3E, 0xDC, 0x87, 0xE2, 0xE8,
+            0x05, 0xD2, 0xEC, 0x49, 0xA4, 0xF2, 0xD8, 0xE0};
+        Cpa8U testOut[] = {
+            0x2B, 0xCE, 0x18, 0x20};
+        ret->bitLen = 189;
+        ret->key = malloc(sizeof(Cpa8U) * sizeof(testKey));
+        memcpy(ret->key, testKey, sizeof(testKey));
+        ret->count =  0x38A6F056;
+        ret->fresh = 0x05D2EC49;
+        ret->dir = 0;
+        ret->in = malloc(sizeof(Cpa8U) * sizeof(testIn));
+        memcpy(ret->in, testIn, sizeof(testIn));
+        ret->out = malloc(sizeof(Cpa8U) * sizeof(testOut));
+        memcpy(ret->out, testOut, sizeof(testOut));
+        ret->keySize = sizeof(testKey);
+        ret->inSize = sizeof(testIn);
+        ret->outSize = sizeof(testOut);
+    }
+    else if (testSetId == 4)
+    {
+        /*
+         * NIA1 test set 4
+         */
+        Cpa8U testKey[] = {
+            0xC7, 0x36, 0xC6, 0xAA, 0xB2, 0x2B, 0xFF, 0xF9, 0x1E, 0x26, 0x98, 0xD2, 0xE2, 0x2A, 0xD5, 0x7E};
+        Cpa8U testIn[] = {
+            0xD0, 0xA7, 0xD4, 0x63, 0xDF, 0x9F, 0xB2, 0xB2, 0x78, 0x83, 0x3F, 0xA0, 0x2E, 0x23, 0x5A, 0xA1,
+            0x72, 0xBD, 0x97, 0x0C, 0x14, 0x73, 0xE1, 0x29, 0x07, 0xFB, 0x64, 0x8B, 0x65, 0x99, 0xAA, 0xA0,
+            0xB2, 0x4A, 0x03, 0x86, 0x65, 0x42, 0x2B, 0x20, 0xA4, 0x99, 0x27, 0x6A, 0x50, 0x42, 0x70, 0x09};
+        Cpa8U testOut[] = {
+            0x38, 0xB5, 0x54, 0xC0};
+        ret->bitLen = 384;
+        ret->key = malloc(sizeof(Cpa8U) * sizeof(testKey));
+        memcpy(ret->key, testKey, sizeof(testKey));
+        ret->count =  0x14793E41;
+        ret->fresh = 0x0397E8FD;
+        ret->dir = 1;
+        ret->in = malloc(sizeof(Cpa8U) * sizeof(testIn));
+        memcpy(ret->in, testIn, sizeof(testIn));
+        ret->out = malloc(sizeof(Cpa8U) * sizeof(testOut));
+        memcpy(ret->out, testOut, sizeof(testOut));
+        ret->keySize = sizeof(testKey);
+        ret->inSize = sizeof(testIn);
+        ret->outSize = sizeof(testOut);
+    }
+    else
+    {
+        return CPA_STATUS_FAIL;
+    }
+
+    genIv(ret);
+
+    return CPA_STATUS_SUCCESS;
+}
+
+CpaStatus genNia2TestData(int testSetId, TestData *ret)
+{
+    ret->op = CPA_CY_SYM_OP_HASH;
+    ret->hashAlgo = CPA_CY_SYM_HASH_AES_CMAC;
+    ret->hashMode = CPA_CY_SYM_HASH_MODE_AUTH;
+
+    if (testSetId == 2)
+    {
+        /*
+         * NIA2 test set 2
+         */
+        Cpa8U testKey[] = {
+            0xd3, 0xc5, 0xd5, 0x92, 0x32, 0x7f, 0xb1, 0x1c, 0x40, 0x35, 0xc6, 0x68, 0x0a, 0xf8, 0xc6, 0xd1};
+        Cpa8U testIn[] = {
+            0x48, 0x45, 0x83, 0xd5, 0xaf, 0xe0, 0x82, 0xae};
+        Cpa8U testOut[] = {
+            0xb9, 0x37, 0x87, 0xe6};
+        ret->bitLen = 64;
+        ret->key = malloc(sizeof(Cpa8U) * sizeof(testKey));
+        memcpy(ret->key, testKey, sizeof(testKey));
+        ret->count =  0x398a59b4;
+        ret->bearer = 0x1a;
+        ret->dir = 1;
+
+        genIv(ret);
+        ret->in = malloc(sizeof(Cpa8U) * (sizeof(testIn) + ret->ivSize));
+        memcpy(ret->in, ret->iv, ret->ivSize);
+        memcpy(ret->in + ret->ivSize, testIn, sizeof(testIn));
+
+        ret->out = malloc(sizeof(Cpa8U) * sizeof(testOut));
+        memcpy(ret->out, testOut, sizeof(testOut));
+        ret->keySize = sizeof(testKey);
+        ret->inSize = sizeof(testIn) + ret->ivSize;
+        ret->outSize = sizeof(testOut);
+    }
+    else
+    {
+        return CPA_STATUS_FAIL;
+    }
+
+    return CPA_STATUS_SUCCESS;
+}
+
+CpaStatus genNia3TestData(int testSetId, TestData *ret)
+{
+    ret->op = CPA_CY_SYM_OP_HASH;
+    ret->hashAlgo = CPA_CY_SYM_HASH_ZUC_EIA3;
+    ret->hashMode = CPA_CY_SYM_HASH_MODE_AUTH;
+
+    if (testSetId == 2)
+    {
+        /*
+         * NIA3 test set 2 (byte-aligned)
+         */
+        Cpa8U testKey[] = {
+            0x47, 0x05, 0x41, 0x25, 0x56, 0x1e, 0xb2, 0xdd, 0xa9, 0x40, 0x59, 0xda, 0x05, 0x09, 0x78, 0x50};
+        Cpa8U testIn[] = {
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; 
+        Cpa8U testOut[] = {
+            0x89, 0xa5, 0x8b, 0x47};
+        ret->bitLen = 96;
+        ret->key = malloc(sizeof(Cpa8U) * sizeof(testKey));
+        memcpy(ret->key, testKey, sizeof(testKey));
+        ret->count =  0x561eb2dd;
+        ret->bearer = 0x14;
+        ret->dir = 0;
+        ret->in = malloc(sizeof(Cpa8U) * sizeof(testIn));
+        memcpy(ret->in, testIn, sizeof(testIn));
+        ret->out = malloc(sizeof(Cpa8U) * sizeof(testOut));
+        memcpy(ret->out, testOut, sizeof(testOut));
+        ret->keySize = sizeof(testKey);
+        ret->inSize = sizeof(testIn);
+        ret->outSize = sizeof(testOut);
+    }
+    else
+    {
+        return CPA_STATUS_FAIL;
+    }
+
+    genIv(ret);
+
+    return CPA_STATUS_SUCCESS;
+}
+
+CpaStatus genSampleTestData(TestData *ret)
+{
+    ret->op = CPA_CY_SYM_OP_CIPHER;
+    ret->cipherAlgo = CPA_CY_SYM_CIPHER_AES_CBC;
     Cpa8U testKey[] = {
         0xEE, 0xE2, 0x7B, 0x5B, 0x10, 0xFD, 0xD2, 0x58, 0x49, 0x77, 0xF1, 0x22,
         0xD7, 0x1B, 0xA4, 0xCA, 0xEC, 0xBD, 0x15, 0xE2, 0x52, 0x6A, 0x21, 0x0B,
@@ -384,21 +549,22 @@ TestData genSampleTestData()
         0x1E, 0x71, 0x45, 0x14, 0x5E, 0x9B, 0xB4, 0x75, 0xD3, 0xA8, 0xED, 0x40,
         0x01, 0x19, 0x2B, 0xEB, 0x04, 0x35, 0xAA, 0xA9, 0xA7, 0x95, 0x69, 0x77,
         0x40, 0xD9, 0x1D, 0xE4, 0xE7, 0x1A, 0xF9, 0x35, 0x06, 0x61, 0x3F, 0xAF};
-    ret.key = malloc(sizeof(Cpa8U) * sizeof(testKey));
-    memcpy(ret.key, testKey, sizeof(testKey));
-    ret.iv = malloc(sizeof(Cpa8U) * sizeof(testIv));
-    memcpy(ret.iv, testIv, sizeof(testIv));
-    ret.dir = 1;
-    ret.in = malloc(sizeof(Cpa8U) * sizeof(testIn));
-    memcpy(ret.in, testIn, sizeof(testIn));
-    ret.out = malloc(sizeof(Cpa8U) * sizeof(testOut));
-    memcpy(ret.out, testOut, sizeof(testOut));
-    ret.keySize = sizeof(testKey);
-    ret.ivSize = sizeof(testIv);
-    ret.inSize = sizeof(testIn);
-    ret.outSize = sizeof(testOut);
+    ret->bitLen = sizeof(testOut) * 8;
+    ret->key = malloc(sizeof(Cpa8U) * sizeof(testKey));
+    memcpy(ret->key, testKey, sizeof(testKey));
+    ret->iv = malloc(sizeof(Cpa8U) * sizeof(testIv));
+    memcpy(ret->iv, testIv, sizeof(testIv));
+    ret->dir = 1;
+    ret->in = malloc(sizeof(Cpa8U) * sizeof(testIn));
+    memcpy(ret->in, testIn, sizeof(testIn));
+    ret->out = malloc(sizeof(Cpa8U) * sizeof(testOut));
+    memcpy(ret->out, testOut, sizeof(testOut));
+    ret->keySize = sizeof(testKey);
+    ret->ivSize = sizeof(testIv);
+    ret->inSize = sizeof(testIn);
+    ret->outSize = sizeof(testOut);
 
-    return ret;
+    return CPA_STATUS_SUCCESS;
 }
 
 CpaCySymCipherDirection getCipherDirection(TestData testData)
@@ -441,24 +607,84 @@ void freeTestData(TestData *testData)
 
 void genIv(TestData *testData)
 {
-    const Cpa32U ivLen = 16;
+    Cpa32U ivLen;
     Cpa32U listIdx = 0;
 
-    testData->iv = malloc(sizeof(Cpa8U) * ivLen);
-    testData->iv[0] = (Cpa8U)((testData->count >> 24) & 0xff);
-    testData->iv[1] = (Cpa8U)((testData->count >> 16) & 0xff);
-    testData->iv[2] = (Cpa8U)((testData->count >> 8) & 0xff);
-    testData->iv[3] = (Cpa8U)(testData->count & 0xff);
-    testData->iv[4] = (testData->bearer << 3) | ((testData->dir & 0x01) << 2);
-    testData->iv[5] = 0x00;
-    testData->iv[6] = 0x00;
-    testData->iv[7] = 0x00;
-
-    if (testData->algo == CPA_CY_SYM_CIPHER_SNOW3G_UEA2 || testData->algo == CPA_CY_SYM_CIPHER_ZUC_EEA3)
+    if (testData->op == CPA_CY_SYM_OP_CIPHER)
     {
-        for (listIdx = 0; listIdx < ivLen/2; listIdx++)
+        ivLen = 16;
+        testData->iv = malloc(sizeof(Cpa8U) * ivLen);
+        testData->iv[0] = (Cpa8U)((testData->count >> 24) & 0xff);
+        testData->iv[1] = (Cpa8U)((testData->count >> 16) & 0xff);
+        testData->iv[2] = (Cpa8U)((testData->count >> 8) & 0xff);
+        testData->iv[3] = (Cpa8U)(testData->count & 0xff);
+        testData->iv[4] = (testData->bearer << 3) | ((testData->dir & 0x01) << 2);
+        testData->iv[5] = 0x00;
+        testData->iv[6] = 0x00;
+        testData->iv[7] = 0x00;
+
+        if (testData->cipherAlgo == CPA_CY_SYM_CIPHER_SNOW3G_UEA2 || testData->cipherAlgo == CPA_CY_SYM_CIPHER_ZUC_EEA3)
         {
-            testData->iv[ivLen/2+listIdx] = testData->iv[listIdx];
+            for (listIdx = 0; listIdx < ivLen/2; listIdx++)
+            {
+                testData->iv[ivLen/2+listIdx] = testData->iv[listIdx];
+            }
+        }
+    }
+    else if (testData->op == CPA_CY_SYM_OP_HASH)
+    {
+        if (testData->hashAlgo == CPA_CY_SYM_HASH_SNOW3G_UIA2)
+        {
+            ivLen = 16;
+            testData->iv = malloc(sizeof(Cpa8U) * ivLen);
+            testData->iv[0] = (Cpa8U)((testData->count >> 24) & 0xff);
+            testData->iv[1] = (Cpa8U)((testData->count >> 16) & 0xff);
+            testData->iv[2] = (Cpa8U)((testData->count >> 8) & 0xff);
+            testData->iv[3] = (Cpa8U)(testData->count & 0xff);
+            testData->iv[4] = (Cpa8U)((testData->fresh >> 24) & 0xff);
+            testData->iv[5] = (Cpa8U)((testData->fresh >> 16) & 0xff);
+            testData->iv[6] = (Cpa8U)((testData->fresh >> 8) & 0xff);
+            testData->iv[7] = (Cpa8U)(testData->fresh & 0xff);
+
+            for (listIdx = 0; listIdx < ivLen/2; listIdx++)
+            {
+                testData->iv[ivLen/2+listIdx] = testData->iv[listIdx];
+            }
+            testData->iv[8] ^= testData->dir << 7;
+            testData->iv[14] ^= testData->dir << 7;
+        }
+        else if (testData->hashAlgo == CPA_CY_SYM_HASH_AES_CMAC)
+        {
+            ivLen = 8;
+            testData->iv = malloc(sizeof(Cpa8U) * ivLen);
+            testData->iv[0] = (Cpa8U)((testData->count >> 24) & 0xff);
+            testData->iv[1] = (Cpa8U)((testData->count >> 16) & 0xff);
+            testData->iv[2] = (Cpa8U)((testData->count >> 8) & 0xff);
+            testData->iv[3] = (Cpa8U)(testData->count & 0xff);
+            testData->iv[4] = (testData->bearer << 3) | ((testData->dir & 0x01) << 2);
+            testData->iv[5] = 0x00;
+            testData->iv[6] = 0x00;
+            testData->iv[7] = 0x00;
+        }
+        else if (testData->hashAlgo == CPA_CY_SYM_HASH_ZUC_EIA3)
+        {
+            ivLen = 16;
+            testData->iv = malloc(sizeof(Cpa8U) * ivLen);
+            testData->iv[0] = (Cpa8U)((testData->count >> 24) & 0xff);
+            testData->iv[1] = (Cpa8U)((testData->count >> 16) & 0xff);
+            testData->iv[2] = (Cpa8U)((testData->count >> 8) & 0xff);
+            testData->iv[3] = (Cpa8U)(testData->count & 0xff);
+            testData->iv[4] = testData->bearer << 3;
+            testData->iv[5] = 0x00;
+            testData->iv[6] = 0x00;
+            testData->iv[7] = 0x00;
+
+            for (listIdx = 0; listIdx < ivLen/2; listIdx++)
+            {
+                testData->iv[ivLen/2+listIdx] = testData->iv[listIdx];
+            }
+            testData->iv[8] ^= testData->dir << 7;
+            testData->iv[14] ^= testData->dir << 7;
         }
     }
 

@@ -33,7 +33,8 @@ make
 Run
 ```bash
 # Arguments:
-#     ALGO        Security algorithm - nea1, nea2 or nea3
-#     TESTSET     Test set number - 1 to 3
+#     ALGO        Security algorithm - nea1, nea2 or nea3 (for cipher)
+#                                      nia1, nia2 or nia3 (for hash)
+#     TESTSET     Test set number - 1 to 5 (not all test sets supported)
 sudo ./main [ALGO] [TESTSET]
 ```

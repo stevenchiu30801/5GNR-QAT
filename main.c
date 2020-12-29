@@ -20,8 +20,9 @@ void usage(const char *cmd)
     PRINT("\n");
     PRINT("Usage: sudo %s [ALGO] [TESTSET]\n", cmd);
     PRINT("Arguments:\n");
-    PRINT("    ALGO        Security algorithm - nea1, nea2 or nea3\n");
-    PRINT("    TESTSET     Test set number - 1 to 3\n");
+    PRINT("    ALGO        Security algorithm - nea1, nea2 or nea3 (for cipher)\n");
+    PRINT("                                     nia1, nia2 or nia3 (for hash)\n");
+    PRINT("    TESTSET     Test set number - 1 to 5 (not all test sets supported)\n");
 }
 
 static void symCallback(void *callBackTag,
@@ -36,13 +37,13 @@ static void symCallback(void *callBackTag,
 
 int main(int argc, const char **argv)
 {
-    TestData cipherTestData = {0};
+    TestData testData = {0};
     int testSetId = 0;
     CpaStatus stat;
 
     if (argc == 1)
     {
-        cipherTestData = genSampleTestData();
+        stat = genSampleTestData(&testData);
     }
     else if (argc == 2 && (0 == strcmp(argv[1], "-h") || 0 == strcmp(argv[1], "--help")))
     {
@@ -58,7 +59,7 @@ int main(int argc, const char **argv)
     else
     {
         testSetId = atoi(argv[2]);
-        if (testSetId > 3 || testSetId < 1)
+        if (testSetId > 5 || testSetId < 1)
         {
             PRINT("Invalid test set ID\n");
             usage(argv[0]);
@@ -66,15 +67,27 @@ int main(int argc, const char **argv)
         }
         if (0 == strcmp(argv[1], "nea1"))
         {
-            cipherTestData = genNea1TestData(testSetId);
+            stat = genNea1TestData(testSetId, &testData);
         }
         else if (0 == strcmp(argv[1], "nea2"))
         {
-            cipherTestData = genNea2TestData(testSetId);
+            stat = genNea2TestData(testSetId, &testData);
         }
         else if (0 == strcmp(argv[1], "nea3"))
         {
-            cipherTestData = genNea3TestData(testSetId);
+            stat = genNea3TestData(testSetId, &testData);
+        }
+        else if (0 == strcmp(argv[1], "nia1"))
+        {
+            stat = genNia1TestData(testSetId, &testData);
+        }
+        else if (0 == strcmp(argv[1], "nia2"))
+        {
+            stat = genNia2TestData(testSetId, &testData);
+        }
+        else if (0 == strcmp(argv[1], "nia3"))
+        {
+            stat = genNia3TestData(testSetId, &testData);
         }
         else
         {
@@ -83,12 +96,17 @@ int main(int argc, const char **argv)
             exit(1);
         }
     }
-    stat = execQat(cipherTestData);
+    if (CPA_STATUS_SUCCESS != stat)
+    {
+        PRINT("'%s' test set '%s' is not supported\n", argv[1], argv[2]);
+        exit(1);
+    }
+    stat = execQat(testData);
 
     return (int)stat;
 }
 
-CpaStatus execQat(TestData cipherTestData)
+CpaStatus execQat(TestData testData)
 {
     CpaStatus stat = CPA_STATUS_SUCCESS;
     char *processName = NULL;
@@ -104,6 +122,7 @@ CpaStatus execQat(TestData cipherTestData)
     CpaBufferList *dstBufferList = NULL;
     CpaFlatBuffer *flatBuffer = NULL;
     Cpa8U *ivBuffer = NULL;
+    Cpa8U *digestBuffer = NULL;
     CpaCySymOpData *opData = NULL;
     Cpa8U *dstBuffer = NULL;
     Cpa32U byteLen = 0;
@@ -201,16 +220,33 @@ CpaStatus execQat(TestData cipherTestData)
     if (CPA_STATUS_SUCCESS == stat)
     {
         sessionSetupData.sessionPriority = CPA_CY_PRIORITY_NORMAL;
-        sessionSetupData.symOperation = CPA_CY_SYM_OP_CIPHER;
-        sessionSetupData.cipherSetupData.cipherAlgorithm = cipherTestData.algo;
-        sessionSetupData.cipherSetupData.pCipherKey = cipherTestData.key;
-        sessionSetupData.cipherSetupData.cipherKeyLenInBytes = cipherTestData.keySize;
-        sessionSetupData.cipherSetupData.cipherDirection = getCipherDirection(cipherTestData);
+        sessionSetupData.symOperation = testData.op;
+        if (CPA_CY_SYM_OP_CIPHER == testData.op)
+        {
+            sessionSetupData.cipherSetupData.cipherAlgorithm = testData.cipherAlgo;
+            sessionSetupData.cipherSetupData.pCipherKey = testData.key;
+            sessionSetupData.cipherSetupData.cipherKeyLenInBytes = testData.keySize;
+            sessionSetupData.cipherSetupData.cipherDirection = getCipherDirection(testData);
+        }
+        else if (CPA_CY_SYM_OP_HASH == testData.op)
+        {
+            sessionSetupData.hashSetupData.hashAlgorithm = testData.hashAlgo;
+            sessionSetupData.hashSetupData.hashMode = testData.hashMode;
+            sessionSetupData.hashSetupData.digestResultLenInBytes = testData.outSize;
+            sessionSetupData.hashSetupData.authModeSetupData.authKey = testData.key;
+            sessionSetupData.hashSetupData.authModeSetupData.authKeyLenInBytes = testData.keySize;
+            if (CPA_CY_SYM_HASH_SNOW3G_UIA2 == testData.hashAlgo || CPA_CY_SYM_HASH_ZUC_EIA3 == testData.hashAlgo)
+            {
+                sessionSetupData.hashSetupData.authModeSetupData.aadLenInBytes = testData.ivSize;
+            }
+            sessionSetupData.digestIsAppended = CPA_FALSE;
+            sessionSetupData.verifyDigest = CPA_FALSE;
+        }
 
         PRINT_DBG("Key: ");
-        for (listIdx = 0; listIdx < sessionSetupData.cipherSetupData.cipherKeyLenInBytes; listIdx++)
+        for (listIdx = 0; listIdx < testData.keySize; listIdx++)
         {
-            PRINT("%02x ", sessionSetupData.cipherSetupData.pCipherKey[listIdx]);
+            PRINT("%02x ", testData.key[listIdx]);
         }
         PRINT("\n");
 
@@ -243,7 +279,7 @@ CpaStatus execQat(TestData cipherTestData)
     {
         stat = createBuffers(cyInstHandle,
                              numBuffers,
-                             cipherTestData.inSize,
+                             testData.inSize,
                              &srcBufferList,
                              &dstBufferList,
                              inPlaceOp);
@@ -252,7 +288,13 @@ CpaStatus execQat(TestData cipherTestData)
 
     if (CPA_STATUS_SUCCESS == stat)
     {
-        stat = memAllocContig((void *)&ivBuffer, cipherTestData.ivSize, BYTE_ALIGNMENT);
+        stat = memAllocContig((void *)&ivBuffer, testData.ivSize, BYTE_ALIGNMENT);
+        CHECK_ERR_STATUS("memAllocContig", stat);
+    }
+
+    if (CPA_STATUS_SUCCESS == stat)
+    {
+        stat = memAllocContig((void *)&digestBuffer, testData.outSize, BYTE_ALIGNMENT);
         CHECK_ERR_STATUS("memAllocContig", stat);
     }
 
@@ -266,22 +308,42 @@ CpaStatus execQat(TestData cipherTestData)
     {
         flatBuffer = (CpaFlatBuffer *)(srcBufferList + 1);
 
-        memcpy(flatBuffer->pData, cipherTestData.in, cipherTestData.inSize);
-        memcpy(ivBuffer, cipherTestData.iv, cipherTestData.ivSize);
+        memcpy(flatBuffer->pData, testData.in, testData.inSize);
+        memcpy(ivBuffer, testData.iv, testData.ivSize);
 
         opData->sessionCtx = sessionCtx;
         opData->packetType = CPA_CY_SYM_PACKET_TYPE_FULL;
-        opData->pIv = ivBuffer;
-        opData->ivLenInBytes = cipherTestData.ivSize;
-        opData->cryptoStartSrcOffsetInBytes = 0;
-        opData->messageLenToCipherInBytes = cipherTestData.inSize;
-
-        PRINT_DBG("IV: ");
-        for (listIdx = 0; listIdx < opData->ivLenInBytes; listIdx++)
+        if (CPA_CY_SYM_OP_CIPHER == testData.op)
         {
-            PRINT("%02x ", opData->pIv[listIdx]);
+            opData->pIv = ivBuffer;
+            opData->ivLenInBytes = testData.ivSize;
+            opData->cryptoStartSrcOffsetInBytes = 0;
+
+            PRINT_DBG("IV: ");
+            for (listIdx = 0; listIdx < opData->ivLenInBytes; listIdx++)
+            {
+                PRINT("%02x ", opData->pIv[listIdx]);
+            }
+            PRINT("\n");
+            opData->messageLenToCipherInBytes = testData.inSize;
         }
-        PRINT("\n");
+        else if (CPA_CY_SYM_OP_HASH == testData.op)
+        {
+            opData->hashStartSrcOffsetInBytes = 0;
+            opData->pDigestResult = digestBuffer;
+            if (CPA_CY_SYM_HASH_SNOW3G_UIA2 == testData.hashAlgo || CPA_CY_SYM_HASH_ZUC_EIA3 == testData.hashAlgo)
+            {
+                opData->pAdditionalAuthData = ivBuffer;
+
+                PRINT_DBG("AAD: ");
+                for (listIdx = 0; listIdx < sessionSetupData.hashSetupData.authModeSetupData.aadLenInBytes; listIdx++)
+                {
+                    PRINT("%02x ", opData->pAdditionalAuthData[listIdx]);
+                }
+                PRINT("\n");
+            }
+            opData->messageLenToHashInBytes = testData.inSize;
+        }
 
         PRINT_DBG("cpaCySymPerformOp()\n");
         stat = cpaCySymPerformOp(cyInstHandle,
@@ -300,41 +362,72 @@ CpaStatus execQat(TestData cipherTestData)
      */
     if (CPA_STATUS_SUCCESS == stat)
     {
-        flatBuffer = (CpaFlatBuffer *)(dstBufferList + 1);
-        dstBuffer = flatBuffer->pData;
-        byteLen = cipherTestData.bitLen / 8;
-        for (listIdx = byteLen + 1; listIdx < cipherTestData.outSize; listIdx++)
+        if (CPA_CY_SYM_OP_CIPHER == testData.op)
         {
-            dstBuffer[listIdx] = 0x0;
-        }
-        if ((cipherTestData.bitLen & 0x7) != 0)
-        {
-            dstBuffer[byteLen] = dstBuffer[byteLen] & (0xff << (8 - (cipherTestData.bitLen % 8)));
-        }
-        if (0 == memcmp(dstBuffer, cipherTestData.out, cipherTestData.outSize))
-        {
-            PRINT_COLOR(ANSI_COLOR_GREEN, "Output matches expected output!\n");
-        }
-        else
-        {
-            PRINT_COLOR(ANSI_COLOR_RED, "Output does not match expected output\n");
-            for (listIdx = 0; listIdx < cipherTestData.outSize; listIdx++)
+            flatBuffer = (CpaFlatBuffer *)(dstBufferList + 1);
+            dstBuffer = flatBuffer->pData;
+            byteLen = testData.bitLen / 8;
+            for (listIdx = byteLen + 1; listIdx < testData.outSize; listIdx++)
             {
-                if (0 == memcmp(dstBuffer + listIdx, cipherTestData.out + listIdx, 1))
-                {
-                    PRINT("%02x ", dstBuffer[listIdx]);
-                }
-                else
-                {
-                    PRINT_COLOR(ANSI_COLOR_RED, "%02x ", dstBuffer[listIdx]);
-                }
-                if (listIdx % 8 == 7)
-                {
-                    PRINT("\n");
-                }
+                dstBuffer[listIdx] = 0x0;
             }
-            PRINT("\n");
-            stat = CPA_STATUS_FAIL;
+            if ((testData.bitLen & 0x7) != 0)
+            {
+                dstBuffer[byteLen] = dstBuffer[byteLen] & (0xff << (8 - (testData.bitLen % 8)));
+            }
+            if (0 == memcmp(dstBuffer, testData.out, testData.outSize))
+            {
+                PRINT_COLOR(ANSI_COLOR_GREEN, "Output matches expected output!\n");
+            }
+            else
+            {
+                PRINT_COLOR(ANSI_COLOR_RED, "Output does not match expected output\n");
+                for (listIdx = 0; listIdx < testData.outSize; listIdx++)
+                {
+                    if (0 == memcmp(dstBuffer + listIdx, testData.out + listIdx, 1))
+                    {
+                        PRINT("%02x ", dstBuffer[listIdx]);
+                    }
+                    else
+                    {
+                        PRINT_COLOR(ANSI_COLOR_RED, "%02x ", dstBuffer[listIdx]);
+                    }
+                    if (listIdx % 8 == 7)
+                    {
+                        PRINT("\n");
+                    }
+                }
+                PRINT("\n");
+                stat = CPA_STATUS_FAIL;
+            }
+        }
+        else if (CPA_CY_SYM_OP_HASH == testData.op)
+        {
+            if (0 == memcmp(digestBuffer, testData.out, testData.outSize))
+            {
+                PRINT_COLOR(ANSI_COLOR_GREEN, "Output matches expected output!\n");
+            }
+            else
+            {
+                PRINT_COLOR(ANSI_COLOR_RED, "Output does not match expected output\n");
+                for (listIdx = 0; listIdx < testData.outSize; listIdx++)
+                {
+                    if (0 == memcmp(digestBuffer + listIdx, testData.out + listIdx, 1))
+                    {
+                        PRINT("%02x ", digestBuffer[listIdx]);
+                    }
+                    else
+                    {
+                        PRINT_COLOR(ANSI_COLOR_RED, "%02x ", digestBuffer[listIdx]);
+                    }
+                    if (listIdx % 8 == 7)
+                    {
+                        PRINT("\n");
+                    }
+                }
+                PRINT("\n");
+                stat = CPA_STATUS_FAIL;
+            }
         }
     }
 
@@ -355,13 +448,9 @@ CpaStatus execQat(TestData cipherTestData)
     /*
      * Query the statistics on the instance
      */
-    stat = cpaCySymQueryStats64(cyInstHandle, &symStats);
-    CHECK_ERR_STATUS("cpaCySymQueryStats64", stat);
-    if (CPA_STATUS_SUCCESS == stat)
-    {
-        PRINT("Number of symmetric operation completed: %llu\n",
-            (unsigned long long)symStats.numSymOpCompleted);
-    }
+    cpaCySymQueryStats64(cyInstHandle, &symStats);
+    PRINT("Number of symmetric operation completed: %llu\n",
+        (unsigned long long)symStats.numSymOpCompleted);
 
     sampleCyStopPolling();
 
@@ -382,7 +471,7 @@ CpaStatus execQat(TestData cipherTestData)
     memFreeContig((void *)&ivBuffer);
 
     memFreeContig((void *)&sessionCtx);
-    freeTestData(&cipherTestData);
+    freeTestData(&testData);
 
     /*
      * Close user space access to the QAT endpoint and memory driver
