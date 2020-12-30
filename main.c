@@ -505,7 +505,7 @@ CpaStatus checkCyInstanceCapabilities(void)
 
     PRINT("=== Cryptography Instance Capabilities Check ===\n");
     PRINT_CAPABILITY(" Symmetric      ", cap.symSupported);
-    PRINT_CAPABILITY(" Symmetric DP   ", cap.symSupported);
+    PRINT_CAPABILITY(" Symmetric DP   ", cap.symDpSupported);
     PRINT_CAPABILITY(" Diffie Hellman ", cap.dhSupported);
     PRINT_CAPABILITY(" DSA            ", cap.dsaSupported);
     PRINT_CAPABILITY(" RSA            ", cap.rsaSupported);
