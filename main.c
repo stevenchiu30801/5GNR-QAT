@@ -40,6 +40,9 @@ int main(int argc, const char **argv)
     TestData testData = {0};
     int testSetId = 0;
     CpaStatus stat;
+    char *processName = NULL;
+
+    gDebugParam = 1;
 
     if (argc == 1)
     {
@@ -101,36 +104,6 @@ int main(int argc, const char **argv)
         PRINT("'%s' test set '%s' is not supported\n", argv[1], argv[2]);
         exit(1);
     }
-    stat = execQat(testData);
-
-    return (int)stat;
-}
-
-CpaStatus execQat(TestData testData)
-{
-    CpaStatus stat = CPA_STATUS_SUCCESS;
-    char *processName = NULL;
-    Cpa16U numInstances = 0;
-    CpaInstanceHandle cyInstHandles[MAX_INSTANCES];
-    CpaInstanceHandle cyInstHandle = NULL;
-    CpaCySymSessionSetupData sessionSetupData = {0};
-    Cpa32U sessionCtxSize = 0;
-    CpaCySymSessionCtx sessionCtx = NULL;
-    Cpa32U numBuffers = 1;
-    CpaBoolean inPlaceOp = CPA_TRUE;
-    CpaBufferList *srcBufferList = NULL;
-    CpaBufferList *dstBufferList = NULL;
-    CpaFlatBuffer *flatBuffer = NULL;
-    Cpa8U *ivBuffer = NULL;
-    Cpa8U *digestBuffer = NULL;
-    CpaCySymOpData *opData = NULL;
-    Cpa8U *dstBuffer = NULL;
-    Cpa32U byteLen = 0;
-    CpaBoolean sessionInUse = CPA_FALSE;
-    CpaCySymStats64 symStats = {0};
-    Cpa32U listIdx = 0;
-
-    gDebugParam = 1;
 
     /*
      * Initialize memory driver usdm_drv for user space
@@ -156,6 +129,49 @@ CpaStatus execQat(TestData testData)
         qaeMemDestroy();
         return stat;
     }
+
+    stat = execQat(testData);
+
+    /*
+     * Close user space access to the QAT endpoint and memory driver
+     */
+    PRINT_DBG("icp_sal_userStop()\n");
+    icp_sal_userStop();
+    qaeMemDestroy();
+
+    freeTestData(&testData);
+
+    return (int)stat;
+}
+
+CpaStatus execQat(TestData testData)
+{
+    CpaStatus stat = CPA_STATUS_SUCCESS;
+    Cpa16U numInstances = 0;
+    CpaInstanceHandle cyInstHandles[MAX_INSTANCES];
+    CpaInstanceHandle cyInstHandle = NULL;
+
+    /* Session Context Variables */
+    CpaCySymSessionSetupData sessionSetupData = {0};
+    Cpa32U sessionCtxSize = 0;
+    CpaCySymSessionCtx sessionCtx = NULL;
+
+    Cpa32U numBuffers = 1;
+    CpaBoolean inPlaceOp = CPA_TRUE;
+
+    /* Buffer Variables */
+    CpaBufferList *srcBufferList = NULL;
+    CpaBufferList *dstBufferList = NULL;
+    CpaFlatBuffer *flatBuffer = NULL;
+    Cpa8U *ivBuffer = NULL;
+    Cpa8U *digestBuffer = NULL;
+    CpaCySymOpData *opData = NULL;
+    Cpa8U *dstBuffer = NULL;
+
+    Cpa32U byteLen = 0;
+    CpaBoolean sessionInUse = CPA_FALSE;
+    CpaCySymStats64 symStats = {0};
+    Cpa32U listIdx = 0;
 
     /*
      * Discover cryptographic service instance and check capabilities
@@ -471,14 +487,6 @@ CpaStatus execQat(TestData testData)
     memFreeContig((void *)&ivBuffer);
 
     memFreeContig((void *)&sessionCtx);
-    freeTestData(&testData);
-
-    /*
-     * Close user space access to the QAT endpoint and memory driver
-     */
-    PRINT_DBG("icp_sal_userStop()\n");
-    icp_sal_userStop();
-    qaeMemDestroy();
 
     return stat;
 }
