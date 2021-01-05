@@ -22,6 +22,25 @@ sudo make install
 sudo service qat_service start
 ```
 
+Configure QAT devices with `PDCP` endpoint. Take `c6xx_dev0.conf` for example.
+
+```bash
+echo '[PDCP]
+NumberCyInstances = 2
+NumberDcInstances = 0
+NumProcesses = 1
+LimitDevAccess = 0
+
+Cy0Name = "PDCP0"
+Cy0IsPolled = 1
+Cy0CoreAffinity = 0
+
+Cy0Name = "PDCP1"
+Cy0IsPolled = 1
+Cy0CoreAffinity = 1
+' | sudo tee -a /etc/c6xx_dev0.conf
+```
+
 Clone and build the code for 5G NR security.
 
 ```bash
@@ -31,6 +50,7 @@ make
 ```
 
 Run
+
 ```bash
 # Arguments:
 #     ALGO        Security algorithm - nea1, nea2 or nea3 (for cipher)
