@@ -25,14 +25,15 @@ void usage(const char *cmd)
     PRINT("    TESTSET     Test set number - 1 to 5 (not all test sets supported)\n");
 }
 
-static void symCallback(void *callBackTag,
+static void symCallback(void *callbackTag,
                         CpaStatus status,
                         const CpaCySymOp operationType,
                         void *opData,
                         CpaBufferList *dstBuffer,
                         CpaBoolean verifyResult)
 {
-    PRINT_DBG("Callback called with status = %d.\n", status); 
+    PRINT_DBG("Callback called with status = %d.\n", status);
+    *(int *)callbackTag = 1;
 }
 
 int main(int argc, const char **argv)
@@ -168,6 +169,7 @@ CpaStatus execQat(TestData testData)
     CpaCySymOpData *opData = NULL;
     Cpa8U *dstBuffer = NULL;
 
+    Cpa8U callbackTag = 0;
     Cpa32U byteLen = 0;
     CpaBoolean sessionInUse = CPA_FALSE;
     CpaCySymStats64 symStats = {0};
@@ -228,7 +230,10 @@ CpaStatus execQat(TestData testData)
         CHECK_ERR_STATUS("cpaCySetAddressTranslation", stat);
     }
 
-    sampleCyStartPolling(cyInstHandle);
+    /*
+     * Poll instance with separate threads
+     */
+    // sampleCyStartPolling(cyInstHandle);
 
     /*
      * Create and initialize a session
@@ -281,8 +286,8 @@ CpaStatus execQat(TestData testData)
     {
         PRINT_DBG("cpaCySymInitSession()\n");
         stat = cpaCySymInitSession(cyInstHandle,
-                                   // symCallback,
-                                   NULL,
+                                   symCallback,
+                                   // NULL,
                                    &sessionSetupData,
                                    sessionCtx);
         CHECK_ERR_STATUS("cpaCySymInitSession", stat);
@@ -363,7 +368,7 @@ CpaStatus execQat(TestData testData)
 
         PRINT_DBG("cpaCySymPerformOp()\n");
         stat = cpaCySymPerformOp(cyInstHandle,
-                                 NULL,
+                                 (void *)&callbackTag,
                                  opData,
                                  srcBufferList,
                                  dstBufferList,
@@ -372,6 +377,20 @@ CpaStatus execQat(TestData testData)
     }
 
     // sleep(1);
+
+    /*
+     * Poll instance with same thread
+     */
+    if (CPA_STATUS_SUCCESS == stat)
+    {
+        do
+        {
+            stat = icp_sal_CyPollInstance(cyInstHandle, 0);
+            OS_SLEEP(10);
+        } while ((CPA_STATUS_SUCCESS == stat || CPA_STATUS_RETRY == stat) &&
+                callbackTag == 0);
+        PRINT_DBG("callbackTag: %d\n", callbackTag);
+    }
 
     /*
      * Verify the result
@@ -468,7 +487,7 @@ CpaStatus execQat(TestData testData)
     PRINT("Number of symmetric operation completed: %llu\n",
         (unsigned long long)symStats.numSymOpCompleted);
 
-    sampleCyStopPolling();
+    // sampleCyStopPolling();
 
     /*
      * Stop the cryptographic service instance
