@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -9,6 +10,7 @@
 #include "icp_sal_poll.h"
 #include "icp_sal_user.h"
 #include "qae_mem.h"
+#include "qae_mem_utils.h"
 
 #include "utils.h"
 

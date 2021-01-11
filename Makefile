@@ -10,7 +10,8 @@ SAMPLE_DIR = $(ICP_ROOT)/quickassist/lookaside/access_layer/src/sample_code/
 USER_INCLUDES += -I$(ICP_ROOT)/quickassist/include/ \
 	-I$(ICP_ROOT)/quickassist/include/lac \
 	-I$(ICP_ROOT)/quickassist/lookaside/access_layer/include/ \
-	-I$(ICP_ROOT)/quickassist/utilities/libusdm_drv/
+	-I$(ICP_ROOT)/quickassist/utilities/libusdm_drv/ \
+	-I$(ICP_ROOT)/quickassist/utilities/libusdm_drv/linux/include/
 
 # For including cpa_sample_utils.h
 CFLAGS += -DUSER_SPACE -DDO_CRYPTO
