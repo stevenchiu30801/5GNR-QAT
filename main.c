@@ -315,7 +315,7 @@ CpaStatus execQat(TestData testData)
         CHECK_ERR_STATUS("memAllocContig", stat);
     }
 
-    if (CPA_STATUS_SUCCESS == stat)
+    if (CPA_STATUS_SUCCESS == stat && CPA_CY_SYM_OP_HASH == testData.op)
     {
         stat = memAllocContig((void *)&digestBuffer, testData.outSize, BYTE_ALIGNMENT);
         CHECK_ERR_STATUS("memAllocContig", stat);
