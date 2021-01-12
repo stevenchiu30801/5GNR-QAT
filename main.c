@@ -615,7 +615,7 @@ CpaStatus createBuffers(CpaInstanceHandle cyInstHandle,
         }
     }
 
-    for (listIdx = 1; listIdx <= numBuffers; listIdx++)
+    for (listIdx = 0; listIdx < numBuffers; listIdx++)
     {
         if (CPA_STATUS_SUCCESS == stat)
         {
@@ -625,7 +625,8 @@ CpaStatus createBuffers(CpaInstanceHandle cyInstHandle,
 
         if (CPA_STATUS_SUCCESS == stat)
         {
-            flatBuffer = (CpaFlatBuffer *)(*srcBufferList + listIdx);
+            flatBuffer = (CpaFlatBuffer *)(*srcBufferList + 1);
+            flatBuffer = flatBuffer + listIdx;
 
             flatBuffer->dataLenInBytes = bufferSize;
             flatBuffer->pData = srcBuffer;
@@ -639,7 +640,8 @@ CpaStatus createBuffers(CpaInstanceHandle cyInstHandle,
 
         if (CPA_STATUS_SUCCESS == stat && CPA_TRUE != inPlaceOp)
         {
-            flatBuffer = (CpaFlatBuffer *)(*dstBufferList + listIdx);
+            flatBuffer = (CpaFlatBuffer *)(*dstBufferList + 1);
+            flatBuffer = flatBuffer + listIdx;
 
             flatBuffer->dataLenInBytes = bufferSize;
             flatBuffer->pData = dstBuffer;
@@ -663,9 +665,10 @@ void freeBuffers(Cpa32U numBuffers,
     Cpa32U listIdx = 0;
     if (NULL != *srcBufferList)
     {
-        for (listIdx = 1; listIdx <= numBuffers; listIdx++)
+        for (listIdx = 0; listIdx < numBuffers; listIdx++)
         {
-            flatBuffer = (CpaFlatBuffer *)(*srcBufferList + listIdx);
+            flatBuffer = (CpaFlatBuffer *)(*srcBufferList + 1);
+            flatBuffer = flatBuffer + listIdx;
             memFreeContig((void *)&(flatBuffer->pData));
         }
         memFreeContig((void *)&((*srcBufferList)->pPrivateMetaData));
@@ -679,9 +682,10 @@ void freeBuffers(Cpa32U numBuffers,
     }
     else if (NULL != *dstBufferList)
     {
-        for (listIdx = 1; listIdx <= numBuffers; listIdx++)
+        for (listIdx = 0; listIdx < numBuffers; listIdx++)
         {
-            flatBuffer = (CpaFlatBuffer *)(*dstBufferList + listIdx);
+            flatBuffer = (CpaFlatBuffer *)(*dstBufferList + 1);
+            flatBuffer = flatBuffer + listIdx;
             memFreeContig((void *)&(flatBuffer->pData));
         }
         memFreeContig((void *)&((*dstBufferList)->pPrivateMetaData));
